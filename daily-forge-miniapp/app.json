@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "Daily Forge",
+    "navigationBarBackgroundColor": "#0f1117",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0f1117"
+  },
+  "darkmode": true,
+  "themeLocation": "theme.json",
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}

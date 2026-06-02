@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squad Tactical Calculator v2</title>
+<style>
+:root{--bg:#0a0e14;--surface:#131820;--surface2:#1a1f2b;--border:#252b36;--text:#b0b8c4;--text-dim:#636d7a;--accent:#d4942b;--accent2:#e8b84b;--green:#2ecc71;--red:#e74c3c}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;height:100vh;overflow:hidden;user-select:none}
+
+#topbar{height:44px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px}
+#topbar .logo{font-size:14px;font-weight:700;letter-spacing:2px;color:var(--accent2);white-space:nowrap}
+#map-select{background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:5px 24px 5px 8px;border-radius:4px;font-size:12px;cursor:pointer;outline:none;min-width:150px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23636d7a'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center}
+.top-spacer{flex:1}
+.top-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:4px;font-size:11px;cursor:pointer;letter-spacing:1px;transition:all .15s;white-space:nowrap}
+.top-btn:hover{border-color:var(--accent);color:var(--accent2)}
+.top-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
+#coord-hint{font-size:10px;color:var(--text-dim);text-align:right}
+
+#main{display:flex;height:calc(100vh - 44px)}
+#map-wrap{flex:1;position:relative;background:#0a0d12;overflow:hidden}
+#map-canvas{position:absolute;top:0;left:0;cursor:crosshair}
+
+#sidebar{width:340px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+#sidebar::-webkit-scrollbar{width:4px}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sec{padding:12px 16px;border-bottom:1px solid var(--border)}
+.sec h3{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim);margin-bottom:10px}
+.mcard{background:var(--surface2);border-radius:6px;padding:10px 12px;margin-bottom:6px;border-left:3px solid transparent}
+.mcard.mt{border-left-color:var(--green)}
+.mcard.tg{border-left-color:var(--red)}
+.mcard .ml{font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px}
+.mcard.mt .ml{color:var(--green)}
+.mcard.tg .ml{color:var(--red)}
+.mcard .mv{font-size:17px;font-weight:700;letter-spacing:1px;color:#e8e8e8;font-family:Consolas,monospace}
+.mcard .ms{font-size:10px;color:var(--text-dim);margin-top:2px}
+.mcard .me{color:var(--text-dim);font-size:11px;font-style:italic}
+
+#rbox{background:linear-gradient(135deg,var(--surface2),#1c1f2b);border:1px solid var(--border);border-radius:6px;padding:12px}
+.rrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0}
+.rrow+.rrow{border-top:1px solid rgba(255,255,255,.04)}
+.rrow .rl{font-size:10px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase}
+.rrow .rv{font-size:20px;font-weight:700;font-family:Consolas,monospace;color:var(--accent2)}
+.rrow .ru{font-size:10px;color:var(--text-dim);margin-left:3px}
+.rm{font-size:10px;color:var(--text-dim);margin-top:4px;text-align:center}
+
+#scope-wrap{display:flex;justify-content:center;align-items:center;background:#000;border-radius:50%;width:200px;height:200px;margin:0 auto 8px;overflow:hidden;border:2px solid #1a1a1a;box-shadow:inset 0 0 30px rgba(0,0,0,.8)}
+#scope-wrap canvas{width:100%;height:100%}
+.sc-row{display:flex;gap:8px;align-items:center;margin-bottom:5px}
+.sc-row label{font-size:10px;letter-spacing:1px;color:var(--text-dim);white-space:nowrap}
+.sc-row select{flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:4px 20px 4px 6px;border-radius:4px;font-size:11px;cursor:pointer;outline:none;appearance:none}
+.sc-info{text-align:center;margin-top:4px;font-size:11px;color:var(--accent2)}
+
+.btn-row{display:flex;gap:8px}
+.btn{flex:1;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;text-align:center;transition:all .15s;background:var(--surface2);color:var(--text)}
+.btn:hover{border-color:var(--accent)}
+.btn.warn{color:var(--red)}
+.btn.warn:hover{border-color:var(--red);background:rgba(231,76,60,.1)}
+.kb{font-size:9px;color:var(--text-dim);text-align:center;margin-top:6px}
+.kb kbd{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:Consolas,monospace;font-size:9px;color:var(--text);margin:0 1px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--accent);color:var(--accent2);padding:10px 24px;border-radius:4px;font-size:13px;letter-spacing:1px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:999}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="logo">SQUAD CALC v2</span>
+  <select id="map-select"></select>
+  <span class="top-spacer"></span>
+  <button class="top-btn active" id="btn-mode">迫击炮</button>
+  <span id="coord-hint">选择地图开始</span>
+</div>
+
+<div id="main">
+  <div id="map-wrap">
+    <canvas id="map-canvas"></canvas>
+  </div>
+
+  <div id="sidebar">
+    <!-- Markers -->
+    <div class="sec">
+      <h3>标记位置</h3>
+      <div class="mcard mt" id="mortar-card">
+        <div class="ml">发射点</div>
+        <div class="me" id="mortar-empty">左键点击地图</div>
+        <div class="mv" id="mortar-coord" style="display:none"></div>
+        <div class="ms" id="mortar-sub"></div>
+      </div>
+      <div class="mcard tg" id="target-card">
+        <div class="ml">目标点</div>
+        <div class="me" id="target-empty">右键点击地图</div>
+        <div class="mv" id="target-coord" style="display:none"></div>
+        <div class="ms" id="target-sub"></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="sec">
+      <h3>射击参数</h3>
+      <div id="rbox">
+        <div class="me" id="result-empty" style="text-align:center;padding:14px 0">设置两点后自动计算</div>
+        <div id="result-content" style="display:none">
+          <div class="rrow"><span class="rl">距离</span><span><span class="rv" id="r-dist">--</span><span class="ru">米</span></span></div>
+          <div class="rrow"><span class="rl">方位角</span><span><span class="rv" id="r-bearing">--</span><span class="ru">°</span></span></div>
+          <div class="rrow"><span class="rl">迫击炮密位</span><span><span class="rv" id="r-mils">--</span><span class="ru">mil</span></span></div>
+          <div class="rrow"><span class="rl">弹道补偿</span><span><span class="rv" id="r-hold">--</span><span class="ru">mil</span></span></div>
+          <div class="rm" id="r-hint"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scope -->
+    <div class="sec" id="scope-section">
+      <h3>瞄具视图</h3>
+      <div class="sc-row">
+        <label>武器</label>
+        <select id="scope-weapon"></select>
+      </div>
+      <div class="sc-row">
+        <label>归零 (m)</label>
+        <select id="scope-zero"></select>
+      </div>
+      <div id="scope-wrap"><canvas id="scope-canvas" width="400" height="400"></canvas></div>
+      <!-- BUG: weapon-ref-text element is missing here -->
+      <div class="sc-info" id="scope-info">设置两点后显示瞄点</div>
+    </div>
+
+    <!-- Controls -->
+    <div class="sec">
+      <div class="btn-row">
+        <button class="btn warn" id="btn-clear">清除</button>
+        <button class="btn" id="btn-swap">交换</button>
+      </div>
+      <div class="kb"><kbd>滚轮</kbd>缩放 <kbd>拖拽</kbd>平移 <kbd>Ctrl+Z</kbd>撤销</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   MAP DATA -- 20 Squad maps
+   ============================================================ */
+const TILE_SIZE=256;
+const TILE_URL="https://raw.githubusercontent.com/Endebert/squadmc-maps/master/public/maps/";
+
+const MAPS=[
+  {k:"albasrah",n:"Al Basrah",dim:[4065,4065],lo:[-2032,-2032],bd:[3200,3200],gl:"ABCDEFGHIJKL"},
+  {k:"belaya",n:"Belaya",dim:[4033,4033],lo:[-2016,-2142],bd:[3904,3905],gl:"ABCDEFGHIJKLMN"},
+  {k:"chora",n:"Chora Valley",dim:[8129,8129],lo:[-2464,-2664],bd:[4064,4064],gl:"ABCDEFGHIJKLMN"},
+  {k:"fallujah",n:"Fallujah",dim:[2806,2806],lo:[-2040,-2040],bd:[3005,3005],gl:"ABCDEFGHIJK"},
+  {k:"foolsroad",n:"Fool's Road",dim:[2806,2806],lo:[-1598,-1866],bd:[1774,1774],gl:"ABCDEF"},
+  {k:"forest",n:"Operation First Light",dim:[2017,2017],lo:[-1100,-1100],bd:[1200,1200],gl:"ABCD"},
+  {k:"gorodok",n:"Gorodok",dim:[4033,4033],lo:[-2016,-2016],bd:[4340,4340],gl:"ABCDEFGHIJKLMNO"},
+  {k:"jensens",n:"Jensen's Range",dim:[1009,1009],lo:[-723,-544],bd:[1511,1509],gl:"ABCDEF"},
+  {k:"kamdesh",n:"Kamdesh Highlands",dim:[4033,4033],lo:[-2016,-2016],bd:[4032,4032],gl:"ABCDEFGHIJKLMN"},
+  {k:"kohat",n:"Kohat Toi",dim:[4065,4065],lo:[-2016,-2016],bd:[4617,4617],gl:"ABCDEFGHIJKLMNOP"},
+  {k:"kokan",n:"Kokan",dim:[3049,3684],lo:[-1333,-1714],bd:[2496,2496],gl:"ABCDEFGHI"},
+  {k:"lashkar",n:"Lashkar Valley",dim:[4336,4336],lo:[-2167,-2167],bd:[4334,4334],gl:"ABCDEFGHIJKLMNO"},
+  {k:"logarvalley",n:"Logar Valley",dim:[2773,1891],lo:[-1386,-1260],bd:[1761,1761],gl:"ABCDEF"},
+  {k:"mestia",n:"Mestia",dim:[4081,4081],lo:[-2310,-1927],bd:[2400,2400],gl:"ABCDEFGH"},
+  {k:"mutaha",n:"Mutaha",dim:[4081,4081],lo:[-1785,-1785],bd:[2755,2755],gl:"ABCDEFGHIJ"},
+  {k:"narva",n:"Narva",dim:[4033,4033],lo:[-2016,-2016],bd:[2800,2800],gl:"ABCDEFGHIJ"},
+  {k:"skorpo",n:"Skorpo",dim:[7367,5081],lo:[-4300,-2413],bd:[7600,7600],gl:"ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
+  {k:"sumari",n:"Sumari Bala",dim:[1985,1985],lo:[-992,-992],bd:[1300,1300],gl:"ABCDE"},
+  {k:"tallil",n:"Tallil Outskirts",dim:[4081,4081],lo:[-2040,-2040],bd:[4680,4680],gl:"ABCDEFGHIJKLMNOP"},
+  {k:"yehorivka",n:"Yehorivka",dim:[8129,8129],lo:[-4064,-4064],bd:[5000,5000],gl:"ABCDEFGHIJKLMNOPQ"}
+];
+
+/* ============================================================
+   MORTAR TABLE -- M252 81mm
+   ============================================================ */
+const MTBL=[[50,1540],[100,1450],[200,1320],[300,1220],[400,1140],[500,1080],[600,1020],[700,960],[800,910],[900,870],[1000,830],[1100,795],[1200,765],[1250,750],[1300,735],[1400,710],[1500,685]];
+
+function calcMortar(d){
+  if(d<=MTBL[0][0])return MTBL[0][1];
+  if(d>=MTBL[MTBL.length-1][0])return MTBL[MTBL.length-1][1];
+  for(let i=0;i<MTBL.length-1;i++){
+    if(MTBL[i][0]<=d&&d<=MTBL[i+1][0]){
+      const r=(d-MTBL[i][0])/(MTBL[i+1][0]-MTBL[i][0]);
+      return Math.round(MTBL[i][1]+r*(MTBL[i+1][1]-MTBL[i][1]));
+    }
+  }
+  return null;
+}
+
+/* ============================================================
+   WEAPONS -- 13 weapon variants (v2 feature)
+   ============================================================ */
+const WEAPONS=[
+  {id:"m4_acog",name:"M4A1 + ACOG 4x (US Army)",scope:"acog",zeroes:[100,200,300,400],muzzleVel:880},
+  {id:"m16_acog",name:"M16A4 + ACOG 4x (USMC)",scope:"acog",zeroes:[100,200,300,400],muzzleVel:940},
+  {id:"m110",name:"M110 SASS 6-10x (US Army DM)",scope:"mildot",zeroes:[100,200,300,400,500,600,700,800],muzzleVel:783},
+  {id:"m14",name:"M14 EBR 6x (US Army DM)",scope:"mildot",zeroes:[100,200,300,400,500,600,700],muzzleVel:850},
+  {id:"ak74_pso",name:"AK-74 + PSO-1 4x (RUS)",scope:"pso1",zeroes:[100,200,300,400],muzzleVel:900},
+  {id:"svd",name:"SVD Dragunov 4x (RUS DM)",scope:"pso1",zeroes:[100,200,300,400,500,600,700,800],muzzleVel:830},
+  {id:"l85_susat",name:"L85A2 + SUSAT 4x (BAF)",scope:"susat",zeroes:[100,200,300],muzzleVel:940},
+  {id:"l86",name:"L86A2 LSW 4x (BAF DM)",scope:"susat",zeroes:[100,200,300,400],muzzleVel:970},
+  {id:"c7_c79",name:"C7A2 + C79 3.4x (CAF)",scope:"c79",zeroes:[100,200,300,400],muzzleVel:920},
+  {id:"c8_c79",name:"C8A3 + C79 3.4x (CAF)",scope:"c79",zeroes:[100,200,300,400],muzzleVel:880},
+  {id:"qbz95",name:"QBZ-95 3x (PLA)",scope:"acog",zeroes:[100,200,300,400],muzzleVel:915},
+  {id:"m4_reddot",name:"M4A1 + M68 CCO 1x (US)",scope:"reddot",zeroes:[100,200],muzzleVel:880},
+  {id:"ak_reddot",name:"AK-74 + Kobra 1x (RUS)",scope:"reddot",zeroes:[100,200],muzzleVel:900}
+];
+let curWeapon=WEAPONS[0];
+
+/* ============================================================
+   BALLISTIC CALCULATION (v2 feature -- complex physics)
+   ============================================================ */
+const GRAVITY=9.81;
+const BORE_HEIGHT=0.065;
+
+function calcHoldover(distanceM, zeroDist, muzzleVel){
+  if(distanceM<=0)return 0;
+  const zeroT=zeroDist/muzzleVel;
+  const boreAngle=Math.atan((GRAVITY*zeroT*zeroT/2-BORE_HEIGHT)/zeroDist);
+  const t=distanceM/muzzleVel;
+  const drop=GRAVITY*t*t/2-BORE_HEIGHT;
+  const path=Math.tan(boreAngle)*distanceM;
+  const actualDrop=drop-path;
+  return actualDrop*1000/distanceM;
+}
+
+/* ============================================================
+   TILE CACHE -- GitHub only, no local fallback (v2)
+   ============================================================ */
+const tcache=new Map(), tpend=new Map();
+function tileURL(k,z,x,y){return TILE_URL+k+"/"+z+"_"+x+"_"+y+".jpg";}
+function loadTile(k,z,x,y){
+  const key=k+"/"+z+"/"+x+"/"+y;
+  if(tcache.has(key))return Promise.resolve(tcache.get(key));
+  if(tpend.has(key))return tpend.get(key);
+  const p=new Promise((resolve)=>{
+    const img=new Image();
+    img.onload=()=>{tcache.set(key,img);tpend.delete(key);resolve(img);requestAnimationFrame(render);};
+    img.onerror=()=>{tpend.delete(key);resolve(null);};
+    img.src=tileURL(k,z,x,y);
+  });
+  tpend.set(key,p);return p;
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let cmap=null, zoom=3, panX=0, panY=0;
+let mPos=null, tPos=null, placing="mortar";
+let ustack=[], dragging=false, dt=null, dlX=0, dlY=0;
+let mgX=0, mgY=0;
+
+/* ============================================================
+   COORDINATES
+   BUG (v2): gameToScreen uses destructuring bug
+   const[p] = gameToPixel(gx,gy) -- p is first element (number)
+   p[0] and p[1] are undefined -> NaN screen positions
+   ============================================================ */
+function gameToPixel(gx,gy){
+  const mw=cmap.dim[0],mh=cmap.dim[1];
+  const tp=TILE_SIZE*(1<<zoom);
+  return[((gx-cmap.lo[0])/mw)*tp,((cmap.lo[1]+mh-gy)/mh)*tp];
+}
+function pixelToGame(px,py){
+  const mw=cmap.dim[0],mh=cmap.dim[1];
+  const tp=TILE_SIZE*(1<<zoom);
+  return[(px/tp)*mw+cmap.lo[0],cmap.lo[1]+mh-(py/tp)*mh];
+}
+function screenToGame(sx,sy){return pixelToGame(sx-panX,sy-panY);}
+// BUG: const[p] extracts only first element of array
+function gameToScreen(gx,gy){const[p]=gameToPixel(gx,gy);return[p[0]+panX,p[1]+panY];}
+
+function fmtGrid(gx,gy){
+  const gl=cmap.gl||"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const hw=cmap.bd[0]/2,hh=cmap.bd[1]/2,ox=-hw,oy=-hh;
+  const col=Math.floor((gx-ox)/300),row=Math.floor((gy-oy)/300);
+  const l=col>=0&&col<gl.length?gl[col]:"?";
+  const rx=((gx-ox)%300+300)%300,ry=((gy-oy)%300+300)%300;
+  const kp=(2-Math.floor(ry/100))*3+Math.floor(rx/100)+1;
+  const sx=Math.floor((rx%100)/33),sy=Math.floor((ry%100)/33),sub=(2-sy)*3+sx+1;
+  return{full:l+"-"+row+"-"+kp+"-"+sub,short:l+"-"+row+"-"+kp};
+}
+
+/* ============================================================
+   DOM REFS
+   ============================================================ */
+const mwrap=document.getElementById("map-wrap");
+const canvas=document.getElementById("map-canvas");
+const ctx=canvas.getContext("2d");
+const scopeCvs=document.getElementById("scope-canvas");
+const scopeCtx=scopeCvs.getContext("2d");
+
+function resizeCanvas(){
+  const r=mwrap.getBoundingClientRect();
+  canvas.width=r.width;canvas.height=r.height;
+}
+
+/* ============================================================
+   RENDER -- triggers tile loading on each frame (v2 bug)
+   ============================================================ */
+function render(){
+  resizeCanvas();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!cmap){ctx.fillStyle="#636d7a";ctx.font="14px 'Segoe UI',sans-serif";ctx.textAlign="center";ctx.fillText("请从上方选择地图",canvas.width/2,canvas.height/2);return;}
+
+  const n=1<<zoom;
+  for(let tx=0;tx<n;tx++){
+    for(let ty=0;ty<n;ty++){
+      const sx=panX+tx*TILE_SIZE,sy=panY+ty*TILE_SIZE;
+      if(sx+TILE_SIZE<-100||sx>canvas.width+100)continue;
+      if(sy+TILE_SIZE<-100||sy>canvas.height+100)continue;
+      const ck=cmap.k+"/"+zoom+"/"+tx+"/"+ty;
+      if(tcache.has(ck)){ctx.drawImage(tcache.get(ck),sx,sy,TILE_SIZE,TILE_SIZE);}
+      else{ctx.fillStyle="#0d1117";ctx.fillRect(sx,sy,TILE_SIZE,TILE_SIZE);loadTile(cmap.k,zoom,tx,ty);}
+    }
+  }
+
+  drawGrid();
+  if(mPos&&tPos){
+    const[mx,my]=gameToScreen(mPos.gx,mPos.gy);
+    const[tx,ty]=gameToScreen(tPos.gx,tPos.gy);
+    ctx.strokeStyle="rgba(212,148,43,0.6)";ctx.lineWidth=2;ctx.setLineDash([8,4]);
+    ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(tx,ty);ctx.stroke();ctx.setLineDash([]);
+    const midX=(mx+tx)/2,midY=(my+ty)/2;
+    const d=Math.sqrt((tPos.gx-mPos.gx)**2+(tPos.gy-mPos.gy)**2);
+    ctx.fillStyle="rgba(0,0,0,0.8)";ctx.fillRect(midX-30,midY-15,60,24);
+    ctx.fillStyle="#e8b84b";ctx.font="bold 12px 'Consolas'";ctx.textAlign="center";ctx.fillText(Math.round(d)+"m",midX,midY+4);
+  }
+  if(mPos)drawMarker(mPos.gx,mPos.gy,"#2ecc71","M");
+  if(tPos)drawMarker(tPos.gx,tPos.gy,"#e74c3c","T");
+  updateCoordHint();
+}
+
+function drawGrid(){
+  const G=300,S=100;
+  const[gx0,gy0]=screenToGame(0,0);const[gx1,gy1]=screenToGame(canvas.width,canvas.height);
+  const mnX=Math.min(gx0,gx1),mxX=Math.max(gx0,gx1),mnY=Math.min(gy0,gy1),mxY=Math.max(gy0,gy1);
+
+  // 300m major grid
+  ctx.strokeStyle="rgba(212,148,43,0.2)";ctx.lineWidth=1;ctx.beginPath();
+  const sgX=Math.floor(mnX/G)*G,sgY=Math.floor(mnY/G)*G;
+  const egX=Math.ceil(mxX/G)*G,egY=Math.ceil(mxY/G)*G;
+  for(let gx=sgX;gx<=egX;gx+=G){const[sx,sy0]=gameToScreen(gx,mnY);const[sx2,sy1]=gameToScreen(gx,mxY);ctx.moveTo(sx,sy0);ctx.lineTo(sx2,sy1);}
+  for(let gy=sgY;gy<=egY;gy+=G){const[sx0,sy]=gameToScreen(mnX,gy);const[sx1,sy2]=gameToScreen(mxX,gy);ctx.moveTo(sx0,sy);ctx.lineTo(sx1,sy2);}
+  ctx.stroke();
+
+  // 100m sub-grid (no optimization -- draws even at low zoom)
+  ctx.strokeStyle="rgba(255,255,255,0.04)";ctx.lineWidth=0.5;ctx.beginPath();
+  const sX=Math.floor(mnX/S)*S,sY=Math.floor(mnY/S)*S;
+  const eX=Math.ceil(mxX/S)*S,eY=Math.ceil(mxY/S)*S;
+  for(let gx=sX;gx<=eX;gx+=S){const[sx,sy0]=gameToScreen(gx,mnY);const[sx2,sy1]=gameToScreen(gx,mxY);ctx.moveTo(sx,sy0);ctx.lineTo(sx2,sy1);}
+  for(let gy=sY;gy<=eY;gy+=S){const[sx0,sy]=gameToScreen(mnX,gy);const[sx1,sy2]=gameToScreen(mxX,gy);ctx.moveTo(sx0,sy);ctx.lineTo(sx1,sy2);}
+  ctx.stroke();
+
+  // Labels
+  const gl=cmap.gl||"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const hw=cmap.bd[0]/2,hh=cmap.bd[1]/2,ox=-hw,oy=-hh;
+  ctx.font="9px 'Segoe UI','Microsoft YaHei',sans-serif";ctx.textAlign="center";ctx.fillStyle="rgba(212,148,43,0.4)";
+  for(let gx=sgX;gx<=egX;gx+=G){
+    const col=Math.floor((gx+G/2-ox)/G),label=col>=0&&col<gl.length?gl[col]:"";
+    for(let gy=sgY;gy<=egY;gy+=G){
+      const row=Math.floor((gy+G/2-oy)/G);
+      if(gx===sgX){const[sx,sy]=gameToScreen(gx-15,gy+G/2);ctx.fillText(row+1,sx,sy+4);}
+      if(gy===sgY){const[sx,sy]=gameToScreen(gx+G/2,gy+15);ctx.fillText(label,sx,sy+4);}
+    }
+  }
+}
+
+function drawMarker(gx,gy,color,label){
+  const[sx,sy]=gameToScreen(gx,gy);
+  ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(sx,sy,12,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle=color;ctx.beginPath();ctx.arc(sx,sy,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#fff";ctx.font="bold 11px 'Consolas'";ctx.textAlign="center";ctx.fillText(label,sx,sy-18);
+}
+
+function updateCoordHint(){
+  if(!cmap){document.getElementById("coord-hint").textContent="选择地图开始";return;}
+  const g=fmtGrid(mgX,mgY);
+  document.getElementById("coord-hint").textContent=g.short;
+}
+
+/* ============================================================
+   UI UPDATE
+   ============================================================ */
+function updateUI(){
+  const mc=document.getElementById("mortar-coord"),me=document.getElementById("mortar-empty"),ms=document.getElementById("mortar-sub");
+  const tc=document.getElementById("target-coord"),te=document.getElementById("target-empty"),ts=document.getElementById("target-sub");
+  if(mPos){me.style.display="none";mc.style.display="";const f=fmtGrid(mPos.gx,mPos.gy);mc.textContent=f.short;ms.textContent="X"+mPos.gx.toFixed(0)+" Y"+mPos.gy.toFixed(0);}
+  else{me.style.display="";mc.style.display="none";ms.textContent="";}
+  if(tPos){te.style.display="none";tc.style.display="";const f=fmtGrid(tPos.gx,tPos.gy);tc.textContent=f.short;ts.textContent="X"+tPos.gx.toFixed(0)+" Y"+tPos.gy.toFixed(0);}
+  else{te.style.display="";tc.style.display="none";ts.textContent="";}
+
+  const re=document.getElementById("result-empty"),rc=document.getElementById("result-content");
+  if(mPos&&tPos){
+    re.style.display="none";rc.style.display="";
+    const dx=tPos.gx-mPos.gx,dy=tPos.gy-mPos.gy;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const bearing=(Math.atan2(dx,dy)*180/Math.PI+360)%360;
+    const mils=calcMortar(dist);
+    const hold=calcHoldover(dist,curWeapon.zeroes[0],curWeapon.muzzleVel);
+    document.getElementById("r-dist").textContent=Math.round(dist);
+    document.getElementById("r-bearing").textContent=bearing.toFixed(1);
+    document.getElementById("r-mils").textContent=mils!==null?mils:"--";
+    document.getElementById("r-hold").textContent=hold.toFixed(1);
+    document.getElementById("r-hint").textContent=dist>1500?"超出迫击炮最大射程":"";
+  }else{re.style.display="";rc.style.display="none";}
+  updateScopeDisplay();
+}
+
+/* ============================================================
+   SCOPE DISPLAY -- v2 uses ballistic holdover for aim point
+   ============================================================ */
+function updateScopeDisplay(){
+  const w=scopeCvs.width,h=scopeCvs.height,cx=w/2,cy=h/2;
+  scopeCtx.clearRect(0,0,w,h);
+  scopeCtx.fillStyle="#000";scopeCtx.fillRect(0,0,w,h);
+  scopeCtx.save();scopeCtx.beginPath();scopeCtx.arc(cx,cy,185,0,Math.PI*2);scopeCtx.clip();
+  scopeCtx.fillStyle="#0a180a";scopeCtx.fillRect(0,0,w,h);
+
+  const sc=curWeapon.scope;
+  if(sc==="acog")drawACOG(cx,cy);
+  else if(sc==="pso1")drawPSO1(cx,cy);
+  else if(sc==="susat")drawSUSAT(cx,cy);
+  else if(sc==="c79")drawC79(cx,cy);
+  else if(sc==="mildot")drawMilDot(cx,cy);
+  else if(sc==="reddot")drawRedDot(cx,cy);
+
+  scopeCtx.restore();
+  scopeCtx.strokeStyle="#1a1a1a";scopeCtx.lineWidth=10;
+  scopeCtx.beginPath();scopeCtx.arc(cx,cy,190,0,Math.PI*2);scopeCtx.stroke();
+  scopeCtx.strokeStyle="#222";scopeCtx.lineWidth=2;
+  scopeCtx.beginPath();scopeCtx.arc(cx,cy,195,0,Math.PI*2);scopeCtx.stroke();
+
+  if(mPos&&tPos){
+    const dx=tPos.gx-mPos.gx,dy=tPos.gy-mPos.gy;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const holdMil=calcHoldover(dist,curWeapon.zeroes[0],curWeapon.muzzleVel);
+    // Convert mil holdover to pixels (1 mil ≈ 18px on scope canvas)
+    const py=cy+holdMil*18;
+    const px=cx;
+
+    const grad=scopeCtx.createRadialGradient(px,py,0,px,py,14);
+    grad.addColorStop(0,"rgba(255,40,40,0.95)");
+    grad.addColorStop(0.4,"rgba(255,40,40,0.4)");
+    grad.addColorStop(1,"rgba(255,40,40,0)");
+    scopeCtx.fillStyle=grad;
+    scopeCtx.beginPath();scopeCtx.arc(px,py,14,0,Math.PI*2);scopeCtx.fill();
+    scopeCtx.fillStyle="#ff2020";
+    scopeCtx.beginPath();scopeCtx.arc(px,py,4,0,Math.PI*2);scopeCtx.fill();
+    scopeCtx.strokeStyle="#fff";scopeCtx.lineWidth=1;
+    scopeCtx.beginPath();scopeCtx.arc(px,py,2,0,Math.PI*2);scopeCtx.stroke();
+
+    document.getElementById("scope-info").textContent="距离 "+Math.round(dist)+"m | 补偿 "+holdMil.toFixed(1)+" mil | "+curWeapon.name;
+  }else{
+    document.getElementById("scope-info").textContent="设置两点后显示瞄点";
+  }
+}
+
+function drawACOG(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(255,30,30,0.8)";s.lineWidth=1.5;
+  s.beginPath();s.moveTo(cx,cy-110);s.lineTo(cx,cy+130);s.stroke();
+  s.beginPath();s.moveTo(cx-80,cy);s.lineTo(cx+80,cy);s.stroke();
+  s.fillStyle="rgba(255,30,30,0.9)";
+  s.beginPath();s.moveTo(cx,cy-14);s.lineTo(cx+14,cy+5);s.lineTo(cx-14,cy+5);s.closePath();s.fill();
+  for(let i=0;i<7;i++){const y=cy+16+i*24;s.strokeStyle="rgba(255,30,30,0.5)";s.lineWidth=1;s.beginPath();s.moveTo(cx-20,y);s.lineTo(cx+20,y);s.stroke();}
+  s.fillStyle="rgba(255,30,30,0.35)";s.font="8px 'Segoe UI'";s.textAlign="center";s.fillText("ACOG 4x",cx,cy-125);
+}
+function drawPSO1(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(255,50,50,0.8)";s.lineWidth=1.2;
+  s.beginPath();s.moveTo(cx,cy-120);s.lineTo(cx,cy+120);s.stroke();
+  s.beginPath();s.moveTo(cx-120,cy);s.lineTo(cx+120,cy);s.stroke();
+  s.fillStyle="rgba(255,50,50,0.9)";
+  s.beginPath();s.moveTo(cx,cy-11);s.lineTo(cx+11,cy+4);s.lineTo(cx-11,cy+4);s.closePath();s.fill();
+  for(let i=1;i<=3;i++){const y=cy+12+i*28;s.fillStyle="rgba(255,50,50,0.4)";s.beginPath();s.moveTo(cx,y-7);s.lineTo(cx+9,y+2);s.lineTo(cx-9,y+2);s.closePath();s.fill();}
+  s.fillStyle="rgba(255,50,50,0.4)";s.font="8px 'Segoe UI'";s.textAlign="center";s.fillText("PSO-1 4x",cx,cy-135);
+}
+function drawSUSAT(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(255,180,0,0.8)";s.lineWidth=1.5;
+  s.beginPath();s.moveTo(cx,cy-50);s.lineTo(cx,cy+18);s.lineTo(cx+5,cy+18);s.lineTo(cx+2,cy-50);s.fill();
+  s.beginPath();s.moveTo(cx-45,cy);s.lineTo(cx+45,cy);s.stroke();
+  for(let i=0;i<3;i++){const y=cy+25+i*22;s.beginPath();s.moveTo(cx-14,y);s.lineTo(cx+14,y);s.stroke();}
+  s.fillStyle="rgba(255,180,0,0.4)";s.font="8px 'Segoe UI'";s.textAlign="center";s.fillText("SUSAT 4x",cx,cy-70);
+}
+function drawC79(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(0,200,50,0.8)";s.lineWidth=1.2;
+  s.beginPath();s.moveTo(cx,cy-90);s.lineTo(cx,cy+90);s.stroke();
+  s.beginPath();s.moveTo(cx-90,cy);s.lineTo(cx+90,cy);s.stroke();
+  s.beginPath();s.arc(cx,cy,7,0,Math.PI*2);s.stroke();
+  for(let i=1;i<=4;i++){const y=cy+i*28;s.beginPath();s.moveTo(cx-10,y);s.lineTo(cx+10,y);s.stroke();}
+  s.fillStyle="rgba(0,200,50,0.4)";s.font="8px 'Segoe UI'";s.textAlign="center";s.fillText("C79 3.4x",cx,cy-105);
+}
+function drawMilDot(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(0,180,255,0.7)";s.lineWidth=0.7;
+  s.beginPath();s.moveTo(cx,cy-130);s.lineTo(cx,cy+130);s.stroke();
+  s.beginPath();s.moveTo(cx-130,cy);s.lineTo(cx+130,cy);s.stroke();
+  for(let i=-7;i<=7;i++)for(let j=-7;j<=7;j++){
+    if(i===0&&j===0)continue;
+    s.fillStyle="rgba(0,180,255,0.65)";
+    s.beginPath();s.arc(cx+i*18,cy+j*18,(i%5===0||j%5===0)?2.5:1.3,0,Math.PI*2);s.fill();
+  }
+  s.fillStyle="rgba(0,180,255,0.5)";s.font="7px 'Segoe UI'";s.textAlign="center";s.fillText("MIL-DOT 6-10x",cx,cy-138);
+}
+function drawRedDot(cx,cy){
+  const s=scopeCtx;
+  s.fillStyle="#000";s.fillRect(0,0,400,400);
+  const grad=s.createRadialGradient(cx,cy,0,cx,cy,7);
+  grad.addColorStop(0,"rgba(255,25,25,1)");grad.addColorStop(0.3,"rgba(255,25,25,0.6)");grad.addColorStop(1,"rgba(255,25,25,0)");
+  s.fillStyle=grad;s.beginPath();s.arc(cx,cy,7,0,Math.PI*2);s.fill();
+  s.fillStyle="#ff0000";s.beginPath();s.arc(cx,cy,2.2,0,Math.PI*2);s.fill();
+  s.fillStyle="rgba(255,30,30,0.4)";s.font="8px 'Segoe UI'";s.textAlign="center";s.fillText("CCO 1x",cx,cy-18);
+}
+
+/* ============================================================
+   EVENTS -- duplicate mousedown handlers (v2 bug)
+   ============================================================ */
+function evPos(e){const r=canvas.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];}
+
+// Handler 1: Place markers
+canvas.addEventListener("mousedown",(e)=>{
+  if(!cmap)return;e.preventDefault();
+  const[sx,sy]=evPos(e);
+  if(e.button===0&&!e.ctrlKey&&!e.shiftKey){
+    if(mPos){const[mx,my]=gameToScreen(mPos.gx,mPos.gy);if(Math.hypot(sx-mx,sy-my)<16){dragging=true;dt="mortar";dlX=sx;dlY=sy;canvas.style.cursor="grabbing";return;}}
+    if(tPos){const[tx,ty]=gameToScreen(tPos.gx,tPos.gy);if(Math.hypot(sx-tx,sy-ty)<16){dragging=true;dt="target";dlX=sx;dlY=sy;canvas.style.cursor="grabbing";return;}}
+  }
+
+  const[gx,gy]=screenToGame(sx,sy);
+  ustack.push({m:mPos?{...mPos}:null,t:tPos?{...tPos}:null});
+  if(ustack.length>50)ustack.shift();
+  if(e.button===0){if(e.shiftKey||placing==="target"){tPos={gx,gy};}else{mPos={gx,gy};}}
+  else if(e.button===2){tPos={gx,gy};}
+  updateUI();requestAnimationFrame(render);
+});
+
+// Handler 2: Pan (BUG: also fires on click, can interfere with marker placement)
+canvas.addEventListener("mousedown",(e)=>{
+  if(!cmap)return;
+  const[sx,sy]=evPos(e);
+  if(e.button===1||(e.button===0&&e.ctrlKey)){dragging=true;dt="pan";dlX=sx;dlY=sy;e.preventDefault();}
+});
+
+canvas.addEventListener("contextmenu",(e)=>e.preventDefault());
+
+canvas.addEventListener("mousemove",(e)=>{
+  const[sx,sy]=evPos(e);
+  [mgX,mgY]=screenToGame(sx,sy);
+  if(dragging&&dt){
+    const dx=sx-dlX,dy=sy-dlY;
+    if(dt==="pan"){panX+=dx;panY+=dy;}
+    else if(dt==="mortar"&&mPos){const scl=cmap.dim[0]/(TILE_SIZE*(1<<zoom));mPos.gx+=dx*scl;mPos.gy-=dy*scl;}
+    else if(dt==="target"&&tPos){const scl=cmap.dim[0]/(TILE_SIZE*(1<<zoom));tPos.gx+=dx*scl;tPos.gy-=dy*scl;}
+    dlX=sx;dlY=sy;updateUI();requestAnimationFrame(render);return;
+  }
+});
+
+window.addEventListener("mouseup",()=>{if(dragging&&dt&&dt!=="pan")updateUI();dragging=false;dt=null;canvas.style.cursor="crosshair";});
+
+canvas.addEventListener("wheel",(e)=>{
+  if(!cmap)return;e.preventDefault();
+  const[sx,sy]=evPos(e);
+  const[gxBefore,gyBefore]=screenToGame(sx,sy);
+  if(e.deltaY<0&&zoom<5)zoom++;else if(e.deltaY>0&&zoom>1)zoom--;
+  const[pxA,pyA]=gameToPixel(gxBefore,gyBefore);
+  panX=sx-pxA;panY=sy-pyA;
+  requestAnimationFrame(render);updateUI();
+},{passive:false});
+
+window.addEventListener("keydown",(e)=>{
+  if(e.ctrlKey&&e.key==="z"){e.preventDefault();if(ustack.length>0){const p=ustack.pop();mPos=p.m;tPos=p.t;updateUI();requestAnimationFrame(render);}}
+  if(e.key==="m"||e.key==="M"){placing="mortar";document.getElementById("btn-mode").textContent="迫击炮";document.getElementById("btn-mode").classList.add("active");}
+  if(e.key==="t"||e.key==="T"){placing="target";document.getElementById("btn-mode").textContent="目标";document.getElementById("btn-mode").classList.remove("active");}
+});
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+document.getElementById("btn-mode").addEventListener("click",()=>{
+  placing=placing==="mortar"?"target":"mortar";
+  const b=document.getElementById("btn-mode");
+  b.textContent=placing==="mortar"?"迫击炮":"目标";
+  if(placing==="mortar")b.classList.add("active");else b.classList.remove("active");
+});
+document.getElementById("btn-clear").addEventListener("click",()=>{
+  ustack.push({m:mPos?{...mPos}:null,t:tPos?{...tPos}:null});
+  mPos=null;tPos=null;updateUI();requestAnimationFrame(render);
+});
+document.getElementById("btn-swap").addEventListener("click",()=>{
+  [mPos,tPos]=[tPos,mPos];updateUI();requestAnimationFrame(render);
+});
+
+document.getElementById("map-select").addEventListener("change",()=>{
+  cmap=MAPS.find(m=>m.k===document.getElementById("map-select").value);
+  tcache.clear();tpend.clear();mPos=null;tPos=null;ustack=[];zoom=3;panX=0;panY=0;
+  updateUI();requestAnimationFrame(render);
+});
+
+document.getElementById("scope-weapon").addEventListener("change",()=>{
+  curWeapon=WEAPONS.find(w=>w.id===document.getElementById("scope-weapon").value)||WEAPONS[0];
+  popZeroes();updateScopeDisplay();
+});
+document.getElementById("scope-zero").addEventListener("change",()=>{
+  updateScopeDisplay();
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function popZeroes(){
+  const sel=document.getElementById("scope-zero");sel.innerHTML="";
+  curWeapon.zeroes.forEach(z=>{const o=document.createElement("option");o.value=z;o.textContent=z+"m";sel.appendChild(o);});
+}
+
+let toastTimer;
+function toast(msg){clearTimeout(toastTimer);const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");toastTimer=setTimeout(()=>t.classList.remove("show"),1500);}
+
+function init(){
+  MAPS.forEach(m=>{const o=document.createElement("option");o.value=m.k;o.textContent=m.n+" ("+m.bd[0]+"m)";document.getElementById("map-select").appendChild(o);});
+  WEAPONS.forEach(w=>{const o=document.createElement("option");o.value=w.id;o.textContent=w.name;document.getElementById("scope-weapon").appendChild(o);});
+
+  document.getElementById("map-select").value="albasrah";
+  cmap=MAPS.find(m=>m.k==="albasrah");
+  document.getElementById("scope-weapon").value="m4_acog";
+  curWeapon=WEAPONS[0];
+  popZeroes();
+  resizeCanvas();
+  updateUI();
+  requestAnimationFrame(render);
+  document.getElementById("btn-mode").classList.add("active");
+}
+
+window.addEventListener("resize",()=>{resizeCanvas();requestAnimationFrame(render);});
+init();
+</script>
+</body>
+</html>

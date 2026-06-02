@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squad Tactical Calculator v1</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#e0e0e0;font-family:"Segoe UI","Microsoft YaHei",sans-serif;padding:40px;max-width:700px;margin:0 auto}
+h1{text-align:center;color:#e8b84b;letter-spacing:3px;margin-bottom:8px;font-size:22px}
+h1 small{font-size:11px;color:#888;display:block;letter-spacing:1px;margin-top:4px}
+.card{background:#16213e;border:1px solid #0f3460;border-radius:8px;padding:20px;margin:16px 0}
+.card h2{color:#e8b84b;font-size:14px;letter-spacing:2px;margin-bottom:14px;border-bottom:1px solid #0f3460;padding-bottom:8px}
+.row{display:flex;gap:12px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap}
+.field{flex:1;min-width:120px}
+.field label{display:block;font-size:10px;color:#888;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase}
+.field input,.field select{width:100%;padding:8px 10px;background:#1a1a2e;border:1px solid #0f3460;color:#e0e0e0;border-radius:4px;font-size:14px;font-family:Consolas,monospace;outline:none}
+.field input:focus,.field select:focus{border-color:#e8b84b}
+.field .unit{font-size:10px;color:#666;margin-top:2px}
+.result{padding:12px;background:rgba(232,184,75,.08);border:1px solid rgba(232,184,75,.25);border-radius:6px;text-align:center;margin-top:8px}
+.result .val{font-size:32px;font-weight:700;color:#e8b84b;font-family:Consolas,monospace}
+.result .lbl{font-size:10px;color:#888;letter-spacing:1px}
+.note{font-size:10px;color:#555;text-align:center;margin-top:24px}
+hr{border:none;border-top:1px solid #0f3460;margin:20px 0}
+</style>
+</head>
+<body>
+
+<h1>SQUAD CALCULATOR <small>战术小队射击计算器 · v1</small></h1>
+
+<!-- Module 1: Weapon Ranging -->
+<div class="card">
+  <h2>MODULE 1 — 武器测距 (Weapon Ranging)</h2>
+  <div class="row">
+    <div class="field">
+      <label>目标高度 (m)</label>
+      <input type="number" id="rng-height" value="1.7" step="0.1" min="0.1">
+      <div class="unit">默认1.7m（士兵身高）</div>
+    </div>
+    <div class="field">
+      <label>测量密位 (mil)</label>
+      <input type="number" id="rng-mils" value="5" step="0.1" min="0.1">
+      <div class="unit">通过瞄具分划测量</div>
+    </div>
+  </div>
+  <div class="result">
+    <div class="lbl">估算距离</div>
+    <div class="val" id="rng-result">--</div>
+  </div>
+  <div style="font-size:10px;color:#555;margin-top:4px">公式: 距离(m) = 目标高度(m) × 1000 ÷ 密位(mil)</div>
+</div>
+
+<!-- Module 2: Mortar Calculator -->
+<div class="card">
+  <h2>MODULE 2 — 迫击炮计算 (Mortar Calculator)</h2>
+  <div class="row">
+    <div class="field">
+      <label>距离 (m)</label>
+      <input type="number" id="mort-dist" value="500" min="50" max="1500">
+      <div class="unit">发射点与目标之间的距离</div>
+    </div>
+  </div>
+  <div class="result">
+    <div class="lbl">迫击炮密位 (M252 81mm)</div>
+    <div class="val" id="mort-result">--</div>
+  </div>
+  <div style="font-size:10px;color:#555;margin-top:4px">基于 Squad M252 81mm 迫击炮射表线性插值计算</div>
+</div>
+
+<div class="note">
+  <hr>
+  v1 · 手动输入密位 · 无地图交互 · 基础计算器<br>
+  使用键盘输入密位值，通过公式计算距离和迫击炮参数
+</div>
+
+<script>
+const MTBL=[[50,1540],[100,1450],[200,1320],[300,1220],[400,1140],[500,1080],[600,1020],[700,960],[800,910],[900,870],[1000,830],[1100,795],[1200,765],[1250,750],[1300,735],[1400,710],[1500,685]];
+
+function calcMortar(d){
+  if(d<=MTBL[0][0])return MTBL[0][1];
+  if(d>=MTBL[MTBL.length-1][0])return MTBL[MTBL.length-1][1];
+  for(let i=0;i<MTBL.length-1;i++){
+    if(MTBL[i][0]<=d&&d<=MTBL[i+1][0]){
+      const r=(d-MTBL[i][0])/(MTBL[i+1][0]-MTBL[i][0]);
+      return Math.round(MTBL[i][1]+r*(MTBL[i+1][1]-MTBL[i][1]));
+    }
+  }
+  return null;
+}
+
+function updateRanging(){
+  const h=parseFloat(document.getElementById("rng-height").value)||1.7;
+  const m=parseFloat(document.getElementById("rng-mils").value)||0;
+  if(m>0){
+    const d=Math.round(h*1000/m);
+    document.getElementById("rng-result").textContent=d+" m";
+  }else{
+    document.getElementById("rng-result").textContent="--";
+  }
+}
+
+function updateMortar(){
+  const d=parseInt(document.getElementById("mort-dist").value)||500;
+  const m=calcMortar(d);
+  document.getElementById("mort-result").textContent=m!==null?m+" mil":"超出范围";
+}
+
+document.getElementById("rng-height").addEventListener("input",updateRanging);
+document.getElementById("rng-mils").addEventListener("input",updateRanging);
+document.getElementById("mort-dist").addEventListener("input",updateMortar);
+
+updateRanging();
+updateMortar();
+</script>
+</body>
+</html>

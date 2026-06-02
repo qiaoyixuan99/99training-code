@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squad Tactical Calculator v6 — SMH 截屏 + 高度图</title>
+<style>
+:root {
+  --bg:#080c12; --surface:#0f1620; --surface2:#151d28; --border:#1e2d3d;
+  --text:#9da9b8; --text-dim:#546374; --accent:#d4942b; --accent2:#e8b84b;
+  --green:#2ecc71; --red:#e74c3c; --blue:#5b9cf5; --orange:#d2991d;
+  --elev-up:#4fc3f7; --elev-dn:#ef5350;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;height:100vh;overflow:hidden;user-select:none}
+
+/* === TOP TOOLBAR === */
+#topbar{height:44px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:6px;z-index:100}
+#topbar .logo{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--accent2);margin-right:2px;white-space:nowrap}
+#topbar .ver{font-size:9px;color:var(--text-dim);margin-right:6px}
+#map-select{background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:4px 22px 4px 7px;border-radius:4px;font-size:11px;cursor:pointer;outline:none;min-width:148px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23546374'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center}
+.top-spacer{flex:1}
+.tg-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);padding:3px 7px;border-radius:3px;font-size:9px;cursor:pointer;letter-spacing:1px;transition:all .15s;white-space:nowrap}
+.tg-btn:hover{color:var(--text);border-color:var(--accent)}
+.tg-btn.on{color:var(--accent2);border-color:var(--accent);background:rgba(212,148,43,.1)}
+.tg-btn .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;background:var(--text-dim)}
+.tg-btn.on .dot{background:var(--accent2)}
+#coord-hint{font-size:9px;color:var(--text-dim);min-width:90px;text-align:right;white-space:nowrap}
+#hm-indicator{font-size:9px;color:var(--blue);min-width:70px;text-align:right;white-space:nowrap;display:none}
+
+/* === MAIN LAYOUT === */
+#main{display:flex;height:calc(100vh - 44px)}
+#map-wrap{flex:1;position:relative;background:#090c10;overflow:hidden;cursor:crosshair}
+#map-wrap.panning{cursor:grabbing}
+#map-canvas{position:absolute;top:0;left:0}
+#loading-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:12px;opacity:0;transition:opacity .3s;z-index:10}
+#loading-overlay.on{opacity:1}
+#loading-overlay .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* === SIDEBAR (TABS) === */
+#sidebar{width:380px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#tab-bar{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab-btn{flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-dim);font-size:10px;cursor:pointer;letter-spacing:1px;transition:all .15s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent2);border-bottom-color:var(--accent);background:rgba(212,148,43,.04)}
+.tab-content{display:none;flex:1;overflow-y:auto;flex-direction:column}
+.tab-content.active{display:flex}
+.tab-content::-webkit-scrollbar{width:3px}
+.tab-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* === TAB 1: CALC === */
+.sec{padding:10px 14px;border-bottom:1px solid var(--border)}
+.sec h3{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim);margin-bottom:8px}
+.mcard{background:var(--surface2);border-radius:5px;padding:8px 10px;margin-bottom:5px;border-left:3px solid transparent}
+.mcard.mt{border-left-color:var(--green)}
+.mcard.tg{border-left-color:var(--red)}
+.mcard .ml{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:1px}
+.mcard.mt .ml{color:var(--green)}
+.mcard.tg .ml{color:var(--red)}
+.mcard .mv{font-size:15px;font-weight:700;letter-spacing:1px;color:#d8d8d8;font-family:"Consolas","Courier New",monospace}
+.mcard .ms{font-size:9px;color:var(--text-dim);margin-top:1px}
+.mcard .me{color:var(--text-dim);font-size:10px;font-style:italic}
+
+#rbox{background:linear-gradient(135deg,var(--surface2),#181f2b);border:1px solid var(--border);border-radius:5px;padding:10px}
+.rrow{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.rrow+.rrow{border-top:1px solid rgba(255,255,255,.03)}
+.rrow .rl{font-size:9px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase}
+.rrow .rv{font-size:18px;font-weight:700;font-family:"Consolas","Courier New",monospace;color:var(--accent2)}
+.rrow .ru{font-size:9px;color:var(--text-dim);margin-left:2px}
+.rrow .rv.highlight{color:var(--orange)}
+.rrow .rv.elev{color:var(--blue)}
+.rm{font-size:9px;color:var(--text-dim);margin-top:3px;text-align:center}
+
+/* === TAB 2: SCOPE === */
+#scope-wrap{display:flex;justify-content:center;align-items:center;background:#000;border-radius:50%;width:210px;height:210px;margin:0 auto 6px;overflow:hidden;border:3px solid #1a1a1a;box-shadow:inset 0 0 40px rgba(0,0,0,.85),0 0 0 4px #0d0d0d}
+#scope-wrap canvas{width:100%;height:100%}
+.sc-row{display:flex;gap:6px;align-items:center;margin-bottom:4px}
+.sc-row label{font-size:9px;letter-spacing:1px;color:var(--text-dim);white-space:nowrap;min-width:30px}
+.sc-row select{flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:4px 18px 4px 5px;border-radius:4px;font-size:10px;cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 7L1 3h8z' fill='%23546374'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center}
+#scope-info{text-align:center;margin-top:4px;font-size:10px;color:var(--accent2);line-height:1.4}
+#scope-ballistic{text-align:center;margin-top:1px;font-size:8px;color:var(--text-dim)}
+#scope-ballistic span{color:var(--orange)}
+
+/* === TAB 3: SCREEN CAPTURE === */
+#cap-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px;min-height:200px}
+#cap-area.has-image{justify-content:flex-start}
+#cap-placeholder{text-align:center;color:var(--text-dim)}
+#cap-placeholder .icon{font-size:40px;margin-bottom:8px;opacity:.3}
+#cap-placeholder p{font-size:10px;letter-spacing:1px;line-height:1.6}
+#cap-preview-wrap{position:relative;width:100%;max-height:280px;overflow:hidden;border:1px solid var(--border);border-radius:4px;display:none;cursor:crosshair}
+#cap-preview-wrap.show{display:block}
+#cap-canvas{width:100%;display:block}
+#cap-status{font-size:9px;color:var(--text-dim);text-align:center;margin-top:4px}
+.cap-btn-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.cap-btn{padding:8px 14px;border:1px solid var(--border);border-radius:4px;font-size:10px;cursor:pointer;letter-spacing:1px;transition:all .15s;background:var(--surface2);color:var(--text)}
+.cap-btn:hover{border-color:var(--accent);color:var(--accent2)}
+.cap-btn.pri{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.cap-hint{font-size:8px;color:var(--text-dim);text-align:center;line-height:1.5}
+
+/* === CONTROLS === */
+.btn-row{display:flex;gap:5px;flex-wrap:wrap}
+.btn{flex:1;min-width:55px;padding:6px 5px;border:1px solid var(--border);border-radius:3px;font-size:9px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;text-align:center;transition:all .15s;background:var(--surface2);color:var(--text)}
+.btn:hover{border-color:var(--accent);color:var(--accent2)}
+.btn.pri{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.btn.warn{color:var(--red)}
+.btn.warn:hover{border-color:var(--red);background:rgba(231,76,60,.1)}
+.kb{font-size:8px;color:var(--text-dim);text-align:center;margin-top:4px;line-height:1.5}
+.kb kbd{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:2px;padding:1px 4px;font-family:"Consolas",monospace;font-size:8px;color:var(--text);margin:0 1px}
+
+/* === TOAST === */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--accent);color:var(--accent2);padding:9px 20px;border-radius:4px;font-size:12px;letter-spacing:1px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:999}
+#toast.show{opacity:1}
+
+@media(max-width:860px){#main{flex-direction:column}#sidebar{width:100%;max-height:45vh;flex-shrink:1}#map-wrap{height:55vh}}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="logo">&#9670; SQUAD CALC</span><span class="ver">v6</span>
+  <select id="map-select"></select>
+  <span id="hm-indicator">&#9650; HM</span>
+  <span class="top-spacer"></span>
+  <button class="tg-btn on" id="tg-grid"><span class="dot"></span>网格</button>
+  <button class="tg-btn on" id="tg-ring"><span class="dot"></span>射程</button>
+  <span id="coord-hint">选择地图开始</span>
+</div>
+
+<div id="main">
+  <div id="map-wrap">
+    <canvas id="map-canvas"></canvas>
+    <div id="loading-overlay"><div class="spinner"></div><div style="font-size:10px;color:var(--text-dim)">加载地图瓦片...</div></div>
+  </div>
+
+  <div id="sidebar">
+    <div id="tab-bar">
+      <button class="tab-btn active" data-tab="tab-calc">&#9670; 计算</button>
+      <button class="tab-btn" data-tab="tab-scope">&#9678; 瞄具</button>
+      <button class="tab-btn" data-tab="tab-capture">&#9633; 截屏</button>
+    </div>
+
+    <!-- TAB 1: CALCULATOR -->
+    <div class="tab-content active" id="tab-calc">
+      <div class="sec">
+        <h3>&#9670; 标记位置 <span style="font-weight:400;color:var(--text-dim)">— 左键=发射 右键=目标</span></h3>
+        <div class="mcard mt" id="mortar-card">
+          <div class="ml">&#11044; 发射点 (Mortar)</div>
+          <div class="me" id="mortar-empty">左键点击地图</div>
+          <div class="mv" id="mortar-coord" style="display:none"></div>
+          <div class="ms" id="mortar-sub"></div>
+        </div>
+        <div class="mcard tg" id="target-card">
+          <div class="ml">&#11044; 目标点 (Target)</div>
+          <div class="me" id="target-empty">右键点击地图</div>
+          <div class="mv" id="target-coord" style="display:none"></div>
+          <div class="ms" id="target-sub"></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>&#9881; 射击参数</h3>
+        <div id="rbox">
+          <div class="me" id="result-empty" style="text-align:center;padding:12px 0">在地图上设置两点后自动计算</div>
+          <div id="result-content" style="display:none">
+            <div class="rrow"><span class="rl">距离</span><span><span class="rv" id="r-dist">--</span><span class="ru">m</span></span></div>
+            <div class="rrow"><span class="rl">方位角</span><span><span class="rv" id="r-bearing">--</span><span class="ru">°</span></span></div>
+            <div class="rrow" id="r-elev-row" style="display:none"><span class="rl">高度差</span><span><span class="rv elev" id="r-elev">--</span><span class="ru">m</span></span></div>
+            <div class="rrow"><span class="rl">迫击炮密位</span><span><span class="rv highlight" id="r-mils">--</span><span class="ru">mil</span></span></div>
+            <div class="rrow"><span class="rl">弹道下坠</span><span><span class="rv" id="r-drop">--</span><span class="ru">cm</span></span></div>
+            <div class="rrow"><span class="rl">瞄准补偿</span><span><span class="rv highlight" id="r-hold">--</span><span class="ru">mil</span></span></div>
+            <div class="rm" id="r-hint"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="btn-row">
+          <button class="btn" id="btn-set-mortar">设发射点</button>
+          <button class="btn" id="btn-set-target">设目标点</button>
+          <button class="btn warn" id="btn-clear">清除</button>
+          <button class="btn" id="btn-swap">交换</button>
+        </div>
+        <div class="kb"><kbd>滚轮</kbd>缩放 <kbd>中键</kbd>平移 <kbd>Ctrl+Z</kbd>撤销 <kbd>F</kbd>居中 <kbd>R</kbd>重置 <kbd>M/T</kbd>模式</div>
+      </div>
+    </div>
+
+    <!-- TAB 2: SCOPE -->
+    <div class="tab-content" id="tab-scope">
+      <div class="sec">
+        <h3>&#9678; 瞄具视图 — 归零控制 (14种瞄具 · 26款武器)</h3>
+        <div class="sc-row">
+          <label>武器</label>
+          <select id="scope-weapon"></select>
+        </div>
+        <div class="sc-row">
+          <label>归零</label>
+          <select id="scope-zero"></select>
+        </div>
+        <div id="scope-wrap"><canvas id="scope-canvas" width="440" height="440"></canvas></div>
+        <div id="scope-info">设置两点后显示瞄点</div>
+        <div id="scope-ballistic"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: SCREEN CAPTURE (SMH-INSPIRED) -->
+    <div class="tab-content" id="tab-capture">
+      <div class="sec" style="flex:1;display:flex;flex-direction:column">
+        <h3>&#9633; 屏幕截取 — SMH 风格快速测距</h3>
+        <div id="cap-area">
+          <div id="cap-placeholder">
+            <div class="icon">&#9638;</div>
+            <p>截取游戏内地图<br>快速计算距离与密位</p>
+          </div>
+          <div id="cap-preview-wrap">
+            <canvas id="cap-canvas"></canvas>
+          </div>
+          <div id="cap-status"></div>
+          <div class="cap-btn-row">
+            <button class="cap-btn pri" id="cap-btn-screen">&#9654; 截取屏幕</button>
+            <button class="cap-btn" id="cap-btn-paste">&#9642; 粘贴截图</button>
+            <button class="cap-btn warn" id="cap-btn-clear-cap" style="display:none">&#10005; 清除</button>
+          </div>
+          <div class="cap-hint">
+            截屏模式：在截图上<b>左键</b>设发射点，<b>右键</b>设目标点<br>
+            需先校准：点击地图<b>两个已知刻度点</b>输入距离完成标定<br>
+            支持 <kbd>Ctrl+V</kbd> 粘贴剪贴板截图
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ==========================================================================
+   MAP DATA (20 Squad maps)
+   ========================================================================== */
+const TILE_SIZE=256;
+const GH="https://raw.githubusercontent.com/Endebert/squadmc-maps/master/public/maps/";
+const LC="tiles/";
+const MAPS=[
+  {k:"albasrah",n:"Al Basrah",             dim:[4065,4065],lo:[-2032,-2032],bd:[3200,3200],gl:"ABCDEFGHIJKL"},
+  {k:"belaya",n:"Belaya",                  dim:[4033,4033],lo:[-2016,-2142],bd:[3904,3905],gl:"ABCDEFGHIJKLMN"},
+  {k:"chora",n:"Chora Valley",             dim:[8129,8129],lo:[-2464,-2664],bd:[4064,4064],gl:"ABCDEFGHIJKLMN"},
+  {k:"fallujah",n:"Fallujah",              dim:[2806,2806],lo:[-2040,-2040],bd:[3005,3005],gl:"ABCDEFGHIJK"},
+  {k:"foolsroad",n:"Fool's Road",          dim:[2806,2806],lo:[-1598,-1866],bd:[1774,1774],gl:"ABCDEF"},
+  {k:"forest",n:"Operation First Light",   dim:[2017,2017],lo:[-1100,-1100],bd:[1200,1200],gl:"ABCD"},
+  {k:"gorodok",n:"Gorodok",                dim:[4033,4033],lo:[-2016,-2016],bd:[4340,4340],gl:"ABCDEFGHIJKLMNO"},
+  {k:"jensens",n:"Jensen's Range",         dim:[1009,1009],lo:[-723,-544],  bd:[1511,1509],gl:"ABCDEF"},
+  {k:"kamdesh",n:"Kamdesh Highlands",      dim:[4033,4033],lo:[-2016,-2016],bd:[4032,4032],gl:"ABCDEFGHIJKLMN"},
+  {k:"kohat",n:"Kohat Toi",                dim:[4065,4065],lo:[-2016,-2016],bd:[4617,4617],gl:"ABCDEFGHIJKLMNOP"},
+  {k:"kokan",n:"Kokan",                    dim:[3049,3684],lo:[-1333,-1714],bd:[2496,2496],gl:"ABCDEFGHI"},
+  {k:"lashkar",n:"Lashkar Valley",         dim:[4336,4336],lo:[-2167,-2167],bd:[4334,4334],gl:"ABCDEFGHIJKLMNO"},
+  {k:"logarvalley",n:"Logar Valley",       dim:[2773,1891],lo:[-1386,-1260],bd:[1761,1761],gl:"ABCDEF"},
+  {k:"mestia",n:"Mestia",                  dim:[4081,4081],lo:[-2310,-1927],bd:[2400,2400],gl:"ABCDEFGH"},
+  {k:"mutaha",n:"Mutaha",                  dim:[4081,4081],lo:[-1785,-1785],bd:[2755,2755],gl:"ABCDEFGHIJ"},
+  {k:"narva",n:"Narva",                    dim:[4033,4033],lo:[-2016,-2016],bd:[2800,2800],gl:"ABCDEFGHIJ"},
+  {k:"skorpo",n:"Skorpo",                  dim:[7367,5081],lo:[-4300,-2413],bd:[7600,7600],gl:"ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
+  {k:"sumari",n:"Sumari Bala",             dim:[1985,1985],lo:[-992,-992],  bd:[1300,1300],gl:"ABCDE"},
+  {k:"tallil",n:"Tallil Outskirts",        dim:[4081,4081],lo:[-2040,-2040],bd:[4680,4680],gl:"ABCDEFGHIJKLMNOP"},
+  {k:"yehorivka",n:"Yehorivka",            dim:[8129,8129],lo:[-4064,-4064],bd:[5000,5000],gl:"ABCDEFGHIJKLMNOPQ"}
+];
+
+/* ==========================================================================
+   MORTAR TABLE (M252 81mm)
+   ========================================================================== */
+const MTBL=[[50,1540],[100,1450],[200,1320],[300,1220],[400,1140],[500,1080],[600,1020],[700,960],[800,910],[900,870],[1000,830],[1100,795],[1200,765],[1250,750],[1300,735],[1400,710],[1500,685]];
+function calcMortar(d){
+  if(d<=MTBL[0][0])return MTBL[0][1];
+  if(d>=MTBL[MTBL.length-1][0])return MTBL[MTBL.length-1][1];
+  for(let i=0;i<MTBL.length-1;i++)if(MTBL[i][0]<=d&&d<=MTBL[i+1][0]){const r=(d-MTBL[i][0])/(MTBL[i+1][0]-MTBL[i][0]);return Math.round(MTBL[i][1]+r*(MTBL[i+1][1]-MTBL[i][1]));}
+  return null;
+}
+
+/* ==========================================================================
+   BALLISTIC ENGINE
+   ========================================================================== */
+const GRAVITY=9.81;
+function calcHoldoverMils(distance,zeroDist,muzzleVel,scopeHeight){
+  if(distance<=0)return 0;
+  const tt=distance/muzzleVel,bulletDrop=0.5*GRAVITY*tt*tt;
+  const tz=zeroDist/muzzleVel,dropAtZero=0.5*GRAVITY*tz*tz;
+  const scopeAngle=Math.atan((scopeHeight+dropAtZero)/zeroDist);
+  const bulletY=scopeHeight+bulletDrop,losY=Math.tan(scopeAngle)*distance;
+  return((bulletY-losY)/distance)*1000;
+}
+function calcBulletDropCm(distance,muzzleVel){
+  if(distance<=0)return 0;
+  const t=distance/muzzleVel;return 0.5*GRAVITY*t*t*100;
+}
+
+/* ==========================================================================
+   WEAPONS — 26 weapons across 8 factions (v5 expanded)
+   ========================================================================== */
+const WEAPONS=[
+  {id:"m4_acog",      n:"M4A1 + ACOG M150 4x (US)",            scope:"acog",          zp:[100,200,300,400],             mv:880, sh:0.065, ppm:18},
+  {id:"m16_acog",     n:"M16A4 + ACOG M150 4x (US)",           scope:"acog",          zp:[100,200,300,400],             mv:940, sh:0.065, ppm:18},
+  {id:"m249_acog",    n:"M249 SAW + ACOG M150 4x (US AR)",     scope:"acog",          zp:[100,200,300,400],             mv:915, sh:0.065, ppm:18},
+  {id:"m240b_acog",   n:"M240B + ACOG M150 4x (US AR MG)",     scope:"acog",          zp:[100,200,300,400],             mv:850, sh:0.070, ppm:18},
+  {id:"m16_m7",       n:"M16A4 + ACOG M7 RCO 4x (USMC)",      scope:"acog_horseshoe",zp:[100,200,300,400],             mv:940, sh:0.065, ppm:18},
+  {id:"m27_m7",       n:"M27 IAR + ACOG M7 RCO 4x (USMC)",    scope:"acog_horseshoe",zp:[100,200,300,400],             mv:880, sh:0.065, ppm:18},
+  {id:"m16_cco",      n:"M16A4 + M68 CCO 1x (USMC)",           scope:"aimpoint",      zp:[100,200],                     mv:940, sh:0.065, ppm:4},
+  {id:"ak74_kashtan", n:"AK-74M + 1P78 Kashtan 2.8x (RUS)",   scope:"kashtan",       zp:[100,200,300,400],             mv:900, sh:0.060, ppm:13},
+  {id:"ak74_pso",     n:"AK-74M + PSO-1 4x (RUS)",             scope:"pso1",          zp:[100,200,300,400],             mv:900, sh:0.060, ppm:18},
+  {id:"ak74_okp7",    n:"AK-74M + OKP-7 1x (RUS)",             scope:"okp7",          zp:[100,200],                     mv:900, sh:0.060, ppm:4},
+  {id:"ak74_kobra",   n:"AK-74M + Kobra EKP 1x (RUS)",         scope:"kobra",         zp:[100,200],                     mv:900, sh:0.060, ppm:4},
+  {id:"rpk74_kashtan",n:"RPK-74M + 1P78 Kashtan 2.8x (RUS)",  scope:"kashtan",       zp:[100,200,300,400],             mv:920, sh:0.060, ppm:13},
+  {id:"l85_susat",    n:"L85A2 + SUSAT L9A1 4x (BAF)",         scope:"susat",         zp:[100,200,300],                 mv:940, sh:0.065, ppm:18},
+  {id:"l86_susat",    n:"L86A2 LSW + SUSAT 4x (BAF LMG)",      scope:"susat",         zp:[100,200,300,400],             mv:970, sh:0.065, ppm:18},
+  {id:"l85_specter",  n:"L85A2 + Specter DR 1-4x (BAF)",       scope:"specter",       zp:[100,200,300,400],             mv:940, sh:0.065, ppm:18},
+  {id:"c7_c79",       n:"C7A2 + Elcan C79 3.4x (CAF)",         scope:"c79",           zp:[100,200,300,400],             mv:920, sh:0.065, ppm:15},
+  {id:"c8_c79",       n:"C8A3 + Elcan C79 3.4x (CAF CQB)",     scope:"c79",           zp:[100,200,300,400],             mv:880, sh:0.060, ppm:15},
+  {id:"c7_specter",   n:"C7A2 + Specter DR 1-4x (CAF)",        scope:"specter",       zp:[100,200,300,400],             mv:920, sh:0.065, ppm:18},
+  {id:"akm_pso",      n:"AKM + PSO-1 4x (INS)",                scope:"pso1",          zp:[100,200,300,400],             mv:715, sh:0.060, ppm:18},
+  {id:"sks_pso",      n:"SKS + PSO-1 4x (MIL)",                scope:"pso1",          zp:[100,200,300],                 mv:735, sh:0.060, ppm:18},
+  {id:"m110",         n:"M110 SASS + Leupold Mk4 6-10x (US DM)",scope:"mildot",       zp:[100,200,300,400,500,600,700,800,900,1000],mv:783,sh:0.070,ppm:30},
+  {id:"svd_pso",      n:"SVD + PSO-1M2 4x (RUS DM)",           scope:"svd_pso",       zp:[100,200,300,400,500,600,700], mv:830, sh:0.065, ppm:20},
+  {id:"m14_ebr",      n:"M14 EBR + Leupold 3-9x (US DM)",      scope:"mildot",        zp:[100,200,300,400,500,600,700], mv:850, sh:0.070, ppm:25},
+  {id:"sv98_tmr",     n:"SV-98 + 1P69/TMR 3-10x (RUS Sniper)", scope:"tmr",          zp:[100,200,300,400,500,600,700,800,900,1000],mv:830,sh:0.070,ppm:30},
+  {id:"c14_tmr",      n:"C14 Timberwolf + TMR 5-25x (CAF Snip)",scope:"tmr",         zp:[100,200,300,400,500,600,700,800,900,1000,1200,1500],mv:850,sh:0.075,ppm:35},
+  {id:"l129_acog6x",  n:"L129A1 + ACOG 6x48 (BAF DM)",         scope:"acog_horseshoe",zp:[100,200,300,400,500,600,700,800],mv:830,sh:0.070,ppm:25},
+  {id:"m4_docter",    n:"M4A1 + Docter/Noblex 1x (CQB)",       scope:"docter",        zp:[50,100],                      mv:880, sh:0.080, ppm:4},
+  {id:"ak74_1p63",    n:"AK-74M + 1P63 Obzor 1x (RUS CQB)",    scope:"okp7",          zp:[50,100],                      mv:900, sh:0.065, ppm:4},
+];
+let curWeapon=WEAPONS[0], scopeZero=100;
+
+/* ==========================================================================
+   BDC MARK DEFINITIONS
+   ========================================================================== */
+const BDC_MARKS={
+  acog:           [[100,0],[200,1.1],[300,2.3],[400,3.7],[500,5.3],[600,7.1],[700,9.2],[800,11.7]],
+  acog_horseshoe: [[100,0],[200,1.0],[300,2.1],[400,3.4],[500,4.9],[600,6.6],[700,8.6],[800,10.9]],
+  kashtan:        [[100,0],[200,1.8],[300,3.5],[400,5.0]],
+  pso1:           [[100,0],[200,2.2],[300,3.8],[400,5.5]],
+  svd_pso:        [[100,0],[200,2.2],[300,3.8],[400,5.5],[500,7.4],[600,9.6],[700,12.2]],
+  susat:          [[100,0],[200,1.5],[300,2.8],[400,4.0]],
+  c79:            [[100,0],[200,1.4],[400,3.1],[600,5.2],[800,7.9]],
+  mildot:         [[100,0],[200,1.2],[300,2.5],[400,4.0],[500,5.7],[600,7.5],[700,9.6],[800,11.9],[900,14.5],[1000,17.5]],
+  specter:        [[100,0],[200,1.3],[300,2.6],[400,4.1],[500,5.8],[600,7.8],[700,10.0],[800,12.5]],
+  tmr:            [[100,0],[200,1.1],[300,2.3],[400,3.6],[500,5.2],[600,6.9],[700,8.8],[800,10.9],[900,13.3],[1000,16.0]],
+  okp7:           [[100,0],[200,0.3]],
+  kobra:          [[100,0],[200,0.4]],
+  aimpoint:       [[100,0],[200,0.3]],
+  docter:         [[50,0],[100,0.2]],
+};
+
+/* ==========================================================================
+   TILE CACHE (with IndexedDB-like Map cache)
+   ========================================================================== */
+const tcache=new Map(),tpend=new Map();
+function tileURL(k,z,x,y,loc){return(loc?LC:GH)+k+"/"+z+"_"+x+"_"+y+".jpg";}
+function loadTile(k,z,x,y){
+  const key=k+"/"+z+"/"+x+"/"+y;
+  if(tcache.has(key))return Promise.resolve(tcache.get(key));
+  if(tpend.has(key))return tpend.get(key);
+  const p=new Promise((resolve)=>{
+    const img=new Image();
+    img.onload=()=>{tcache.set(key,img);tpend.delete(key);resolve(img);};
+    img.onerror=()=>{
+      const ghKey=key+"_gh";
+      if(!tcache.has(ghKey)){const img2=new Image();img2.onload=()=>{tcache.set(key,img2);tpend.delete(key);resolve(img2);};img2.onerror=()=>{tpend.delete(key);resolve(null);};img2.src=tileURL(k,z,x,y,false);}
+      else{tpend.delete(key);resolve(tcache.get(ghKey));}
+    };
+    img.src=tileURL(k,z,x,y,true);
+  });
+  tpend.set(key,p);return p;
+}
+
+/* ==========================================================================
+   HEIGHT MAP SYSTEM (SMH-inspired)
+
+   Height maps are grayscale PNG images where:
+   - Each pixel represents elevation at that point
+   - White (255) = highest elevation, Black (0) = lowest
+   - Metadata defines the scale and bounds for each map
+
+   Files stored in heightmaps/{map_key}_height.png
+   Metadata embedded here as HEIGHTMAP_META
+   ========================================================================== */
+const HEIGHTMAP_META={
+  // Format: {k: map_key, scale: meters_per_pixel, minElev: meters, maxElev: meters}
+  // These values are approximate and should be calibrated with actual game data
+  albasrah:    {scale:3.2, minElev:0,  maxElev:45},
+  belaya:      {scale:3.2, minElev:0,  maxElev:180},
+  chora:       {scale:6.4, minElev:0,  maxElev:320},
+  fallujah:    {scale:2.2, minElev:0,  maxElev:35},
+  foolsroad:   {scale:2.2, minElev:0,  maxElev:250},
+  forest:      {scale:1.6, minElev:0,  maxElev:80},
+  gorodok:     {scale:3.2, minElev:0,  maxElev:200},
+  jensens:     {scale:0.8, minElev:0,  maxElev:20},
+  kamdesh:     {scale:3.2, minElev:0,  maxElev:350},
+  kohat:       {scale:3.2, minElev:0,  maxElev:280},
+  kokan:       {scale:2.4, minElev:0,  maxElev:120},
+  lashkar:     {scale:3.4, minElev:0,  maxElev:400},
+  logarvalley: {scale:2.2, minElev:0,  maxElev:180},
+  mestia:      {scale:3.2, minElev:0,  maxElev:220},
+  mutaha:      {scale:3.2, minElev:0,  maxElev:55},
+  narva:       {scale:3.2, minElev:0,  maxElev:45},
+  skorpo:      {scale:5.8, minElev:0,  maxElev:450},
+  sumari:      {scale:1.6, minElev:0,  maxElev:40},
+  tallil:      {scale:3.2, minElev:0,  maxElev:60},
+  yehorivka:   {scale:6.4, minElev:0,  maxElev:180},
+};
+let hmImage=null,hmData=null,hmLoaded=false;
+
+function getHeightmapURL(mapKey){
+  return "heightmaps/"+mapKey+"_height.png";
+}
+
+function loadHeightmap(mapKey){
+  hmImage=null;hmData=null;hmLoaded=false;
+  const meta=HEIGHTMAP_META[mapKey];
+  if(!meta){
+    document.getElementById("hm-indicator").style.display="none";
+    toast("该地图暂无高度数据");
+    return;
+  }
+  const url=getHeightmapURL(mapKey);
+  const img=new Image();
+  img.onload=()=>{
+    hmImage=img;hmData=meta;hmLoaded=true;
+    document.getElementById("hm-indicator").style.display="";
+    document.getElementById("hm-indicator").textContent="▲ HM: "+mapKey;
+    toast("高度图已加载: "+cmap.n);
+    updateUI();
+    requestAnimationFrame(render);
+  };
+  img.onerror=()=>{
+    hmImage=null;hmData=meta;hmLoaded=false;
+    document.getElementById("hm-indicator").style.display="none";
+    console.log("高度图未找到: "+url+" (将 heightmaps/"+mapKey+"_height.png 放入对应目录即可启用)");
+    toast("高度图文件未找到，可手动添加");
+  };
+  img.src=url;
+}
+
+// Get elevation at game coordinates (gx, gy) from heightmap
+function getElevation(gx,gy){
+  if(!hmImage||!hmData)return null;
+  // Map game coords to heightmap pixel coords
+  // The heightmap covers the playable area
+  const hw=cmap.bd[0]/2, hh=cmap.bd[1]/2;
+  const ox=-hw, oy=-hh;
+  // Normalize coordinates within bounds
+  const nx=(gx-ox)/cmap.bd[0]; // 0..1 across playable area
+  const ny=(gy-oy)/cmap.bd[1];
+  if(nx<0||nx>1||ny<0||ny>1)return null;
+  // Convert to pixel coords (image Y is inverted vs game Y)
+  const px=Math.floor(nx*hmImage.width);
+  const py=Math.floor((1-ny)*hmImage.height);
+  if(px<0||px>=hmImage.width||py<0||py>=hmImage.height)return null;
+  // Get pixel data (use offscreen canvas to read pixel)
+  if(!hmImage._canvas){
+    const c=document.createElement("canvas");
+    c.width=hmImage.width;c.height=hmImage.height;
+    const cx=c.getContext("2d");
+    cx.drawImage(hmImage,0,0);
+    hmImage._imageData=cx.getImageData(0,0,hmImage.width,hmImage.height);
+  }
+  const idx=(py*hmImage.width+px)*4;
+  const r=hmImage._imageData.data[idx];
+  // Convert grayscale value to elevation
+  const elevNorm=r/255;
+  return hmData.minElev+elevNorm*(hmData.maxElev-hmData.minElev);
+}
+
+/* ==========================================================================
+   STATE
+   ========================================================================== */
+let cmap=null,zoom=3,panX=0,panY=0;
+let mPos=null,tPos=null,placing="mortar";
+let ustack=[],dragging=false,dt=null,dlX=0,dlY=0;
+let mgX=0,mgY=0,showGrid=true,showRing=true;
+
+/* ==========================================================================
+   COORDINATE CONVERSION
+   ========================================================================== */
+function g2p(gx,gy){const mw=cmap.dim[0],mh=cmap.dim[1],tp=TILE_SIZE*(1<<zoom);return[((gx-cmap.lo[0])/mw)*tp,((cmap.lo[1]+mh-gy)/mh)*tp];}
+function p2g(px,py){const mw=cmap.dim[0],mh=cmap.dim[1],tp=TILE_SIZE*(1<<zoom);return[(px/tp)*mw+cmap.lo[0],cmap.lo[1]+mh-(py/tp)*mh];}
+function s2g(sx,sy){return p2g(sx-panX,sy-panY);}
+function g2s(gx,gy){const[px,py]=g2p(gx,gy);return[px+panX,py+panY];}
+function fmtGrid(gx,gy){
+  const gl=cmap.gl||"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const hw=cmap.bd[0]/2,hh=cmap.bd[1]/2,ox=-hw,oy=-hh;
+  const col=Math.floor((gx-ox)/300),row=Math.floor((gy-oy)/300);
+  const l=col>=0&&col<gl.length?gl[col]:"?";
+  const rx=((gx-ox)%300+300)%300,ry=((gy-oy)%300+300)%300;
+  const kp=(2-Math.floor(ry/100))*3+Math.floor(rx/100)+1;
+  const sx=Math.floor((rx%100)/33),sy=Math.floor((ry%100)/33),sub=(2-sy)*3+sx+1;
+  return{full:l+"-"+row+"-"+kp+"-"+sub,short:l+"-"+row+"-"+kp};
+}
+
+/* ==========================================================================
+   DOM
+   ========================================================================== */
+const mwrap=document.getElementById("map-wrap");
+const canvas=document.getElementById("map-canvas");
+const ctx=canvas.getContext("2d");
+const loader=document.getElementById("loading-overlay");
+const scopeCvs=document.getElementById("scope-canvas");
+const scopeCtx=scopeCvs.getContext("2d");
+const capCvs=document.getElementById("cap-canvas");
+const capCtx=capCvs.getContext("2d");
+function rsz(){const r=mwrap.getBoundingClientRect();canvas.width=r.width;canvas.height=r.height;}
+
+/* ==========================================================================
+   MAP RENDER
+   ========================================================================== */
+function render(full){
+  rsz();ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!cmap){ctx.fillStyle="#546374";ctx.font="13px 'Segoe UI','PingFang SC',sans-serif";ctx.textAlign="center";ctx.fillText("请从上方选择地图",canvas.width/2,canvas.height/2);return;}
+  const n=1<<zoom;let loaded=0,total=0;
+  for(let tx=0;tx<n;tx++)for(let ty=0;ty<n;ty++){
+    const sx=panX+tx*TILE_SIZE,sy=panY+ty*TILE_SIZE;
+    if(sx+TILE_SIZE<-100||sx>canvas.width+100)continue;
+    if(sy+TILE_SIZE<-100||sy>canvas.height+100)continue;
+    total++;const ck=cmap.k+"/"+zoom+"/"+tx+"/"+ty;
+    if(tcache.has(ck)){ctx.drawImage(tcache.get(ck),sx,sy,TILE_SIZE,TILE_SIZE);loaded++;}
+    else{ctx.fillStyle="#0d1117";ctx.fillRect(sx,sy,TILE_SIZE,TILE_SIZE);}
+  }
+  if(total>0&&loaded<total*0.5&&full!==false){if(!loader.classList.contains("on"))loader.classList.add("on");}else{loader.classList.remove("on");}
+  if(showRing&&mPos)drawRangeRings();
+  if(showGrid)drawGrid();
+  // Draw heightmap overlay (light)
+  if(hmLoaded&&hmImage&&zoom>=3)drawHeightmapOverlay();
+  if(mPos&&tPos){
+    const[mx,my]=g2s(mPos.gx,mPos.gy);const[tx,ty]=g2s(tPos.gx,tPos.gy);
+    ctx.strokeStyle="rgba(212,148,43,0.5)";ctx.lineWidth=2;ctx.setLineDash([8,4]);
+    ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(tx,ty);ctx.stroke();ctx.setLineDash([]);
+    const midX=(mx+tx)/2,midY=(my+ty)/2;
+    const d=Math.sqrt((tPos.gx-mPos.gx)**2+(tPos.gy-mPos.gy)**2);
+    ctx.fillStyle="rgba(0,0,0,0.85)";const tw=ctx.measureText(Math.round(d)+"m").width;
+    ctx.fillRect(midX-tw/2-8,midY-14,tw+16,22);
+    ctx.fillStyle="#e8b84b";ctx.font="bold 12px 'Consolas','PingFang SC',sans-serif";ctx.textAlign="center";ctx.fillText(Math.round(d)+"m",midX,midY+3);
+  }
+  if(mPos)drawMarker(mPos.gx,mPos.gy,"#2ecc71","M");
+  if(tPos)drawMarker(tPos.gx,tPos.gy,"#e74c3c","T");
+  updateCoordHint();
+}
+
+function drawHeightmapOverlay(){
+  // Draw subtle elevation hint at mouse cursor
+  if(!mgX||!mgY)return;
+  const elev=getElevation(mgX,mgY);
+  if(elev===null)return;
+  const[sx,sy]=g2s(mgX,mgY);
+  ctx.fillStyle="rgba(0,0,0,.7)";ctx.fillRect(sx+16,sy-10,80,18);
+  ctx.fillStyle="#4fc3f7";ctx.font="9px 'Consolas','PingFang SC',sans-serif";ctx.textAlign="left";ctx.fillText(elev.toFixed(1)+"m",sx+20,sy+3);
+}
+
+function drawRangeRings(){
+  const RINGS=[200,400,600,800,1000,1250,1500];
+  const[mx,my]=g2s(mPos.gx,mPos.gy);const scl=cmap.bd[0]/(TILE_SIZE*(1<<zoom));
+  for(const r of RINGS){const alpha=r>1250?0.06:r>1000?0.08:0.12;const color=r>1250?"rgba(200,200,200,"+alpha+")":r>1000?"rgba(255,200,100,"+alpha+")":"rgba(212,148,43,"+alpha+")";ctx.strokeStyle=color;ctx.lineWidth=r%400===0?1.2:0.6;ctx.setLineDash([4,8]);ctx.beginPath();ctx.arc(mx,my,r/scl,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);if(r<=1250){ctx.fillStyle=color.replace(/[\d.]+\)$/,"0.5)");ctx.font="8px 'Segoe UI','PingFang SC',sans-serif";ctx.textAlign="center";ctx.fillText(r+"m",mx+r/scl+4,my);}}
+  ctx.strokeStyle="rgba(231,76,60,0.2)";ctx.lineWidth=1;ctx.setLineDash([2,6]);ctx.beginPath();ctx.arc(mx,my,50/scl,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+}
+
+function drawGrid(){
+  const G=300,S=100;const[gx0,gy0]=s2g(0,0);const[gx1,gy1]=s2g(canvas.width,canvas.height);
+  const mnX=Math.min(gx0,gx1),mxX=Math.max(gx0,gx1),mnY=Math.min(gy0,gy1),mxY=Math.max(gy0,gy1);
+  if(zoom>=3){ctx.strokeStyle="rgba(255,255,255,0.03)";ctx.lineWidth=0.5;ctx.beginPath();const sX=Math.floor(mnX/S)*S,sY=Math.floor(mnY/S)*S,eX=Math.ceil(mxX/S)*S,eY=Math.ceil(mxY/S)*S;if(eX-sX<5000){for(let gx=sX;gx<=eX;gx+=S){const[sx,sy0]=g2s(gx,mnY);const[sx2,sy1]=g2s(gx,mxY);ctx.moveTo(sx,sy0);ctx.lineTo(sx2,sy1);}for(let gy=sY;gy<=eY;gy+=S){const[sx0,sy]=g2s(mnX,gy);const[sx1,sy2]=g2s(mxX,gy);ctx.moveTo(sx0,sy);ctx.lineTo(sx1,sy2);}ctx.stroke();}}
+  ctx.strokeStyle="rgba(212,148,43,0.18)";ctx.lineWidth=1;ctx.beginPath();
+  const sgX=Math.floor(mnX/G)*G,sgY=Math.floor(mnY/G)*G,egX=Math.ceil(mxX/G)*G,egY=Math.ceil(mxY/G)*G;
+  if(egX-sgX<15000){for(let gx=sgX;gx<=egX;gx+=G){const[sx,sy0]=g2s(gx,mnY);const[sx2,sy1]=g2s(gx,mxY);ctx.moveTo(sx,sy0);ctx.lineTo(sx2,sy1);}for(let gy=sgY;gy<=egY;gy+=G){const[sx0,sy]=g2s(mnX,gy);const[sx1,sy2]=g2s(mxX,gy);ctx.moveTo(sx0,sy);ctx.lineTo(sx1,sy2);}ctx.stroke();}
+  if(zoom>=2){const gl=cmap.gl||"ABCDEFGHIJKLMNOPQRSTUVWXYZ";const hw=cmap.bd[0]/2,hh=cmap.bd[1]/2,ox=-hw,oy=-hh;ctx.font="9px 'Segoe UI','PingFang SC',sans-serif";ctx.textAlign="center";ctx.fillStyle="rgba(212,148,43,0.4)";for(let gx=sgX;gx<=egX;gx+=G){const col=Math.floor((gx+G/2-ox)/G),label=col>=0&&col<gl.length?gl[col]:"";for(let gy=sgY;gy<=egY;gy+=G){const row=Math.floor((gy+G/2-oy)/G);if(gx===sgX){const[sx,sy]=g2s(gx-15,gy+G/2);ctx.fillText(row+1,sx,sy+4);}if(gy===sgY){const[sx,sy]=g2s(gx+G/2,gy+15);ctx.fillText(label,sx,sy+4);}if(zoom>=3){ctx.fillStyle="rgba(255,255,255,0.05)";ctx.font="8px 'Segoe UI','PingFang SC',sans-serif";for(let ky=0;ky<3;ky++)for(let kx=0;kx<3;kx++){const[sx,sy]=g2s(gx+kx*100+50,gy+ky*100+50);ctx.fillText((2-ky)*3+kx+1,sx,sy+3);}}}}}
+}
+
+function drawMarker(gx,gy,color,label){const[sx,sy]=g2s(gx,gy);ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(sx,sy,12,0,Math.PI*2);ctx.stroke();ctx.fillStyle=color;ctx.beginPath();ctx.arc(sx,sy,5,0,Math.PI*2);ctx.fill();ctx.shadowColor=color;ctx.shadowBlur=10;ctx.beginPath();ctx.arc(sx,sy,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle="#fff";ctx.font="bold 11px 'Consolas'";ctx.textAlign="center";ctx.fillText(label,sx,sy-18);}
+
+function updateCoordHint(){
+  if(!cmap){document.getElementById("coord-hint").textContent="选择地图开始";return;}
+  const g=fmtGrid(mgX,mgY);
+  let txt=g.short+" | X:"+mgX.toFixed(1)+" Y:"+mgY.toFixed(1);
+  if(hmLoaded){const e=getElevation(mgX,mgY);if(e!==null)txt+=" | ▲"+e.toFixed(0)+"m";}
+  document.getElementById("coord-hint").textContent=txt;
+}
+
+/* ==========================================================================
+   UI UPDATE
+   ========================================================================== */
+function updateUI(){
+  const mc=document.getElementById("mortar-coord"),me=document.getElementById("mortar-empty"),ms=document.getElementById("mortar-sub");
+  const tc=document.getElementById("target-coord"),te=document.getElementById("target-empty"),ts=document.getElementById("target-sub");
+  if(mPos){me.style.display="none";mc.style.display="";const f=fmtGrid(mPos.gx,mPos.gy);mc.textContent=f.short;ms.textContent="游戏坐标: X"+mPos.gx.toFixed(0)+" Y"+mPos.gy.toFixed(0);}
+  else{me.style.display="";mc.style.display="none";ms.textContent="";}
+  if(tPos){te.style.display="none";tc.style.display="";const f=fmtGrid(tPos.gx,tPos.gy);tc.textContent=f.short;ts.textContent="游戏坐标: X"+tPos.gx.toFixed(0)+" Y"+tPos.gy.toFixed(0);}
+  else{te.style.display="";tc.style.display="none";ts.textContent="";}
+  const re=document.getElementById("result-empty"),rc=document.getElementById("result-content");
+  const erow=document.getElementById("r-elev-row");
+  if(mPos&&tPos){
+    re.style.display="none";rc.style.display="";
+    const dx=tPos.gx-mPos.gx,dy=tPos.gy-mPos.gy,dist=Math.sqrt(dx*dx+dy*dy);
+    const bearing=(Math.atan2(dx,dy)*180/Math.PI+360)%360;
+    const mils=calcMortar(dist);
+    const holdMils=calcHoldoverMils(dist,scopeZero,curWeapon.mv,curWeapon.sh);
+    const dropCm=calcBulletDropCm(dist,curWeapon.mv);
+    document.getElementById("r-dist").textContent=Math.round(dist);
+    document.getElementById("r-bearing").textContent=bearing.toFixed(1);
+    document.getElementById("r-mils").textContent=mils!==null?mils:"--";
+    document.getElementById("r-drop").textContent=Math.round(dropCm);
+    document.getElementById("r-hold").textContent=holdMils.toFixed(1);
+    // Elevation data if heightmap loaded
+    if(hmLoaded){
+      const eM=getElevation(mPos.gx,mPos.gy),eT=getElevation(tPos.gx,tPos.gy);
+      if(eM!==null&&eT!==null){
+        erow.style.display="";const ed=eT-eM;
+        document.getElementById("r-elev").textContent=(ed>=0?"+":"")+ed.toFixed(1);
+        document.getElementById("r-elev").style.color=ed>=0?"var(--elev-up)":"var(--elev-dn)";
+      }else{erow.style.display="none";}
+    }else{erow.style.display="none";}
+    const hints=[];if(dist<50)hints.push("目标过近 (<50m)");if(dist>1500)hints.push("超出迫击炮最大射程");if(holdMils>15)hints.push("补偿过大，建议调整归零");document.getElementById("r-hint").textContent=hints.join(" | ");
+  }else{re.style.display="";rc.style.display="none";erow.style.display="none";}
+  updateScopeDisplay();
+}
+
+/* ==========================================================================
+   SCOPE DISPLAY — 14 scope types (same as v5)
+   ========================================================================== */
+function updateScopeDisplay(){
+  const w=scopeCvs.width,h=scopeCvs.height,cx=w/2,cy=h/2;
+  scopeCtx.clearRect(0,0,w,h);
+  scopeCtx.fillStyle="#000";scopeCtx.fillRect(0,0,w,h);
+  scopeCtx.save();scopeCtx.beginPath();scopeCtx.arc(cx,cy,200,0,Math.PI*2);scopeCtx.clip();
+  scopeCtx.fillStyle="#0a150a";scopeCtx.fillRect(0,0,w,h);
+
+  const sc=curWeapon.scope;
+  switch(sc){
+    case"acog":drawACOG(cx,cy);break;
+    case"acog_horseshoe":drawACOGHorseshoe(cx,cy);break;
+    case"kashtan":drawKashtan(cx,cy);break;
+    case"pso1":drawPSO1(cx,cy);break;
+    case"svd_pso":drawPSO1Extended(cx,cy);break;
+    case"susat":drawSUSAT(cx,cy);break;
+    case"c79":drawC79(cx,cy);break;
+    case"mildot":drawMilDot(cx,cy);break;
+    case"specter":drawSpecter(cx,cy);break;
+    case"tmr":drawTMR(cx,cy);break;
+    case"okp7":drawOKP7(cx,cy);break;
+    case"kobra":drawKobra(cx,cy);break;
+    case"aimpoint":drawAimpoint(cx,cy);break;
+    case"docter":drawDocter(cx,cy);break;
+    default:drawACOG(cx,cy);
+  }
+
+  scopeCtx.restore();
+  scopeCtx.strokeStyle="#1a1a1a";scopeCtx.lineWidth=12;scopeCtx.beginPath();scopeCtx.arc(cx,cy,206,0,Math.PI*2);scopeCtx.stroke();
+  scopeCtx.strokeStyle="#222";scopeCtx.lineWidth=2;scopeCtx.beginPath();scopeCtx.arc(cx,cy,212,0,Math.PI*2);scopeCtx.stroke();
+
+  const ppm=curWeapon.ppm||18;
+  if(mPos&&tPos){
+    const dx=tPos.gx-mPos.gx,dy=tPos.gy-mPos.gy,dist=Math.sqrt(dx*dx+dy*dy);
+    const holdMils=calcHoldoverMils(dist,scopeZero,curWeapon.mv,curWeapon.sh);
+    const py=cy+holdMils*ppm,px=cx,clampedPy=Math.max(cy-190,Math.min(cy+190,py));
+
+    const grad=scopeCtx.createRadialGradient(px,clampedPy,0,px,clampedPy,16);
+    grad.addColorStop(0,"rgba(255,40,40,0.95)");grad.addColorStop(0.3,"rgba(255,40,40,0.5)");grad.addColorStop(0.6,"rgba(255,40,40,0.15)");grad.addColorStop(1,"rgba(255,40,40,0)");
+    scopeCtx.fillStyle=grad;scopeCtx.beginPath();scopeCtx.arc(px,clampedPy,16,0,Math.PI*2);scopeCtx.fill();
+    scopeCtx.fillStyle="#ff1818";scopeCtx.beginPath();scopeCtx.arc(px,clampedPy,4.5,0,Math.PI*2);scopeCtx.fill();
+    scopeCtx.strokeStyle="#fff";scopeCtx.lineWidth=1.2;scopeCtx.beginPath();scopeCtx.arc(px,clampedPy,2.5,0,Math.PI*2);scopeCtx.stroke();
+
+    scopeCtx.strokeStyle="rgba(255,255,255,0.25)";scopeCtx.lineWidth=1;scopeCtx.setLineDash([2,4]);scopeCtx.beginPath();scopeCtx.moveTo(cx-30,cy);scopeCtx.lineTo(cx+30,cy);scopeCtx.stroke();scopeCtx.setLineDash([]);
+
+    const holdSign=holdMils>=0?"+"+holdMils.toFixed(1):holdMils.toFixed(1);
+    const zeroMatch=Math.abs(dist-scopeZero)<5;
+    document.getElementById("scope-info").innerHTML="距离 <b>"+Math.round(dist)+"m</b> | 归零 <b>"+scopeZero+"m</b> → 瞄点偏移 <b style='color:"+(zeroMatch?"#2ecc71":"#ff6b6b")+"'>"+holdSign+" mil</b>";
+    document.getElementById("scope-ballistic").innerHTML="弹道下坠 <span>"+Math.round(calcBulletDropCm(dist,curWeapon.mv))+"cm</span> | 初速 <span>"+curWeapon.mv+"m/s</span> | 瞄具高 <span>"+(curWeapon.sh*100).toFixed(1)+"cm</span>";
+  }else{
+    document.getElementById("scope-info").textContent="设置两点后显示瞄点";
+    document.getElementById("scope-ballistic").textContent="";
+  }
+}
+
+/* ==========================================================================
+   SCOPE RETICLE DRAWINGS (14 types, same as v5)
+   ========================================================================== */
+function drawACOG(cx,cy){
+  const s=scopeCtx,pm=curWeapon.ppm;
+  s.strokeStyle="rgba(255,25,25,0.75)";s.lineWidth=1.3;
+  s.beginPath();s.moveTo(cx,cy-130);s.lineTo(cx,cy+150);s.stroke();
+  s.beginPath();s.moveTo(cx-100,cy);s.lineTo(cx+100,cy);s.stroke();
+  s.fillStyle="rgba(255,25,25,0.85)";
+  s.beginPath();s.moveTo(cx,cy-12);s.lineTo(cx+13,cy+4);s.lineTo(cx-13,cy+4);s.closePath();s.fill();
+  const marks=BDC_MARKS.acog;
+  for(let i=1;i<marks.length;i++){const y=cy+marks[i][1]*pm;s.strokeStyle="rgba(255,25,25,0.48)";s.lineWidth=0.8;s.beginPath();s.moveTo(cx-17,y);s.lineTo(cx+17,y);s.stroke();s.fillStyle="rgba(255,25,25,0.38)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="left";s.fillText(marks[i][0],cx+21,y+3);}
+  s.fillStyle="rgba(255,25,25,0.2)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("ACOG TA31 M150 4x32 — US Army",cx,cy-142);
+}
+
+function drawACOGHorseshoe(cx,cy){
+  const s=scopeCtx,pm=curWeapon.ppm;
+  s.strokeStyle="rgba(255,200,0,0.7)";s.lineWidth=1.3;
+  s.beginPath();s.moveTo(cx,cy-130);s.lineTo(cx,cy+150);s.stroke();
+  s.beginPath();s.moveTo(cx-100,cy);s.lineTo(cx-65,cy);s.stroke();
+  s.beginPath();s.moveTo(cx+65,cy);s.lineTo(cx+100,cy);s.stroke();
+  s.strokeStyle="rgba(255,200,0,0.8)";s.lineWidth=1.8;
+  s.beginPath();s.arc(cx,cy-1,12,Math.PI*0.65,Math.PI*2.35);s.stroke();
+  s.fillStyle="rgba(255,200,0,0.9)";s.beginPath();s.arc(cx,cy,3,0,Math.PI*2);s.fill();
+  const marks=BDC_MARKS.acog_horseshoe;
+  for(let i=1;i<marks.length;i++){const y=cy+marks[i][1]*pm;s.fillStyle="rgba(255,200,0,"+(0.7-i*0.06)+")";s.beginPath();s.arc(cx,y,3.5-i*0.2,0,Math.PI*2);s.fill();s.fillStyle="rgba(255,200,0,0.35)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="left";s.fillText(marks[i][0],cx+16,y+3);}
+  for(let i=1;i<marks.length;i++){const y=cy+marks[i][1]*pm;s.strokeStyle="rgba(255,200,0,0.3)";s.lineWidth=0.6;s.beginPath();s.moveTo(cx-6,y);s.lineTo(cx+6,y);s.stroke();}
+  s.fillStyle="rgba(255,200,0,0.25)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("ACOG TA31 M7 RCO 4x32 — USMC",cx,cy-142);
+}
+
+function drawKashtan(cx,cy){
+  const s=scopeCtx,pm=curWeapon.ppm;
+  s.strokeStyle="rgba(255,50,0,0.5)";s.lineWidth=1.2;s.beginPath();s.arc(cx,cy,80,0,Math.PI*2);s.stroke();
+  s.strokeStyle="rgba(255,50,0,0.65)";s.lineWidth=1;s.beginPath();s.moveTo(cx,cy-85);s.lineTo(cx,cy+85);s.stroke();s.beginPath();s.moveTo(cx-85,cy);s.lineTo(cx+85,cy);s.stroke();
+  s.strokeStyle="rgba(255,50,0,0.6)";s.lineWidth=0.7;s.beginPath();s.arc(cx,cy,6,0,Math.PI*2);s.stroke();
+  s.fillStyle="rgba(255,50,0,0.8)";s.beginPath();s.moveTo(cx,cy-5);s.lineTo(cx+7,cy+4);s.lineTo(cx-7,cy+4);s.closePath();s.fill();
+  const marks=BDC_MARKS.kashtan;
+  for(let i=1;i<marks.length;i++){const y=cy+marks[i][1]*pm;s.strokeStyle="rgba(255,50,0,0.45)";s.lineWidth=0.9;s.beginPath();s.moveTo(cx-30,y);s.lineTo(cx+30,y);s.stroke();s.fillStyle="rgba(255,50,0,0.35)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="left";s.fillText(marks[i][0],cx+34,y+3);}
+  for(let i=-5;i<=5;i++){const x=cx+i*12;s.strokeStyle="rgba(255,50,0,0.25)";s.lineWidth=0.4;s.beginPath();s.moveTo(x,cy+90);s.lineTo(x,cy+95);s.stroke();}
+  s.fillStyle="rgba(255,50,0,0.35)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("1P78 Kashtan 2.8x — RUS Ground Forces",cx,cy-100);
+}
+
+function drawPSO1(cx,cy){
+  const s=scopeCtx,pm=curWeapon.ppm;
+  s.strokeStyle="rgba(255,55,55,0.72)";s.lineWidth=1.1;s.beginPath();s.moveTo(cx,cy-140);s.lineTo(cx,cy+140);s.stroke();s.beginPath();s.moveTo(cx-140,cy);s.lineTo(cx+140,cy);s.stroke();
+  s.fillStyle="rgba(255,55,55,0.82)";s.beginPath();s.moveTo(cx,cy-10);s.lineTo(cx+10,cy+3);s.lineTo(cx-10,cy+3);s.closePath();s.fill();
+  const marks=BDC_MARKS.pso1;
+  for(let i=1;i<marks.length;i++){const y=cy+marks[i][1]*pm;s.fillStyle="rgba(255,55,55,0.38)";s.beginPath();s.moveTo(cx,y-6);s.lineTo(cx+8,y+2);s.lineTo(cx-8,y+2);s.closePath();s.fill();s.fillStyle="rgba(255,55,55,0.3)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="left";s.fillText(marks[i][0],cx+14,y+3);}
+  s.strokeStyle="rgba(255,55,55,0.28)";s.lineWidth=0.6;s.beginPath();s.moveTo(cx-140,cy+60);s.quadraticCurveTo(cx-80,cy+10,cx-15,cy-22);for(let i=0;i<6;i++)s.lineTo(cx-15+i*14,cy-22-i*6);s.stroke();
+  s.fillStyle="rgba(255,55,55,0.32)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("PSO-1 4x24 — RUS / INS / MIL",cx,cy-152);
+}
+
+function drawPSO1Extended(cx,cy){
+  const s=scopeCtx,pm=curWeapon.ppm;
+  s.strokeStyle="rgba(255,55,55,0.72)";s.lineWidth=1.1;s.beginPath();s.moveTo(cx,cy-155);s.lineTo(cx,cy+160);s.stroke();s.beginPath();s.moveTo(cx-140,cy);s.lineTo(cx+140,cy);s.stroke();
+  s.fillStyle="rgba(255,55,55,0.82)";s.beginPath();s.moveTo(cx,cy-10);s.lineTo(cx+10,cy+3);s.lineTo(cx-10,cy+3);s.closePath();s.fill();
+  const marks=BDC_MARKS.svd_pso;
+  for(let i=1;i<marks.length;i++){const y=cy+marks[i][1]*pm;s.fillStyle="rgba(255,55,55,0.38)";s.beginPath();s.moveTo(cx,y-6);s.lineTo(cx+8,y+2);s.lineTo(cx-8,y+2);s.closePath();s.fill();s.fillStyle="rgba(255,55,55,0.3)";s.font="7px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="left";s.fillText(marks[i][0],cx+14,y+3);}
+  for(let i=-3;i<=3;i++){if(i===0)continue;const x=cx+i*pm*2;s.fillStyle="rgba(255,55,55,0.25)";s.beginPath();s.arc(x,cy,2,0,Math.PI*2);s.fill();}
+  s.fillStyle="rgba(255,55,55,0.32)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("PSO-1M2 4x24 — SVD Dragunov DM",cx,cy-167);
+}
+
+function drawSUSAT(cx,cy){
+  const s=scopeCtx,pm=curWeapon.ppm;
+  s.fillStyle="rgba(0,0,0,0.3)";s.fillRect(cx-2,cy-56,6,78);
+  s.fillStyle="rgba(255,180,0,0.78)";s.beginPath();s.moveTo(cx-2,cy-56);s.lineTo(cx+2,cy-56);s.lineTo(cx+5,cy+20);s.lineTo(cx-5,cy+20);s.closePath();s.fill();
+  s.beginPath();s.moveTo(cx,cy-63);s.lineTo(cx+3,cy-52);s.lineTo(cx-3,cy-52);s.closePath();s.fill();
+  s.strokeStyle="rgba(255,180,0,0.5)";s.lineWidth=0.8;s.beginPath();s.moveTo(cx-50,cy);s.lineTo(cx+50,cy);s.stroke();
+  const marks=BDC_MARKS.susat;
+  for(let i=1;i<marks.length;i++){const y=cy+marks[i][1]*pm;s.strokeStyle="rgba(255,180,0,0.42)";s.lineWidth=0.7;s.beginPath();s.moveTo(cx-11,y);s.lineTo(cx+11,y);s.stroke();s.fillStyle="rgba(255,180,0,0.32)";s.font="7px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="left";s.fillText(marks[i][0],cx+15,y+3);}
+  s.fillStyle="rgba(255,180,0,0.3)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("SUSAT L9A1 4x — British Armed Forces",cx,cy-80);
+}
+
+function drawC79(cx,cy){
+  const s=scopeCtx,pm=curWeapon.ppm;
+  s.strokeStyle="rgba(0,200,50,0.72)";s.lineWidth=1.1;s.beginPath();s.moveTo(cx,cy-105);s.lineTo(cx,cy+115);s.stroke();s.beginPath();s.moveTo(cx-110,cy);s.lineTo(cx+110,cy);s.stroke();
+  s.beginPath();s.arc(cx,cy,7,0,Math.PI*2);s.stroke();s.fillStyle="rgba(0,200,50,0.18)";s.beginPath();s.arc(cx,cy,3,0,Math.PI*2);s.fill();
+  const marks=BDC_MARKS.c79;
+  for(let i=0;i<marks.length;i++){const y=cy+marks[i][1]*pm;s.strokeStyle="rgba(0,200,50,0.42)";s.lineWidth=0.8;s.beginPath();s.moveTo(cx-13,y);s.lineTo(cx+13,y);s.stroke();s.fillStyle="rgba(0,200,50,0.3)";s.font="7px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="left";s.fillText(marks[i][0],cx+17,y+3);}
+  s.fillStyle="rgba(0,200,50,0.3)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("Elcan C79 M145 3.4x28 — CAF",cx,cy-118);
+}
+
+function drawMilDot(cx,cy){
+  const s=scopeCtx,pm=curWeapon.ppm;
+  s.strokeStyle="rgba(0,180,255,0.62)";s.lineWidth=0.6;s.beginPath();s.moveTo(cx,cy-160);s.lineTo(cx,cy+160);s.stroke();s.beginPath();s.moveTo(cx-160,cy);s.lineTo(cx+160,cy);s.stroke();
+  for(let i=-9;i<=9;i++)for(let j=-9;j<=9;j++){if(i===0&&j===0)continue;s.fillStyle="rgba(0,180,255,0.58)";s.beginPath();s.arc(cx+i*pm,cy+j*pm,(i%5===0||j%5===0)?2.2:1.1,0,Math.PI*2);s.fill();}
+  s.fillStyle="#0a150a";s.fillRect(cx-3,cy-3,6,6);
+  s.fillStyle="rgba(0,180,255,0.32)";s.font="7px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="left";for(let i=1;i<=9;i++)s.fillText(i+"mil",cx+i*pm+4,cy+3);
+  s.fillStyle="rgba(0,180,255,0.38)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("Leupold Mk4 Mil-Dot 6-10x — M110 SASS",cx,cy-168);
+}
+
+function drawSpecter(cx,cy){
+  const s=scopeCtx,pm=curWeapon.ppm;
+  s.strokeStyle="rgba(255,120,0,0.72)";s.lineWidth=1.2;s.beginPath();s.moveTo(cx,cy-120);s.lineTo(cx,cy+140);s.stroke();s.beginPath();s.moveTo(cx-120,cy);s.lineTo(cx+120,cy);s.stroke();
+  s.strokeStyle="rgba(255,120,0,0.8)";s.lineWidth=1.5;s.beginPath();s.moveTo(cx,cy-35);s.lineTo(cx,cy-10);s.stroke();s.beginPath();s.moveTo(cx,cy+10);s.lineTo(cx,cy+35);s.stroke();s.beginPath();s.moveTo(cx-35,cy);s.lineTo(cx-10,cy);s.stroke();s.beginPath();s.moveTo(cx+10,cy);s.lineTo(cx+35,cy);s.stroke();
+  s.fillStyle="rgba(255,120,0,0.85)";s.beginPath();s.arc(cx,cy,2.5,0,Math.PI*2);s.fill();
+  const marks=BDC_MARKS.specter;
+  for(let i=1;i<marks.length;i++){const y=cy+marks[i][1]*pm;s.fillStyle="rgba(255,120,0,0.55)";s.beginPath();s.arc(cx,y,3,0,Math.PI*2);s.fill();s.fillStyle="rgba(255,120,0,0.32)";s.font="7px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="left";s.fillText(marks[i][0],cx+8,y+3);}
+  s.fillStyle="rgba(255,120,0,0.3)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("Elcan Specter DR 1-4x — BAF / CAF SF",cx,cy-132);
+}
+
+function drawTMR(cx,cy){
+  const s=scopeCtx,pm=curWeapon.ppm;
+  s.strokeStyle="rgba(0,220,100,0.62)";s.lineWidth=0.5;s.beginPath();s.moveTo(cx,cy-170);s.lineTo(cx,cy+170);s.stroke();s.beginPath();s.moveTo(cx-170,cy);s.lineTo(cx+170,cy);s.stroke();
+  for(let i=-20;i<=20;i++){if(i===0)continue;const x=cx+i*pm*0.5;const tickH=(i%2===0)?10:6;s.strokeStyle="rgba(0,220,100,0.55)";s.lineWidth=(i%2===0)?0.7:0.4;s.beginPath();s.moveTo(x,cy-tickH);s.lineTo(x,cy+tickH);s.stroke();}
+  for(let j=-20;j<=20;j++){if(j===0)continue;const y=cy+j*pm*0.5;const tickV=(j%2===0)?10:6;s.strokeStyle="rgba(0,220,100,0.55)";s.lineWidth=(j%2===0)?0.7:0.4;s.beginPath();s.moveTo(cx-tickV,y);s.lineTo(cx+tickV,y);s.stroke();}
+  for(let r=1;r<=8;r++){const y=cy+r*pm;s.strokeStyle="rgba(0,220,100,0.25)";s.lineWidth=0.4;s.beginPath();s.moveTo(cx,y);s.lineTo(cx+r*pm*0.7,y+pm*0.3);s.lineTo(cx-r*pm*0.7,y+pm*0.3);s.closePath();s.stroke();}
+  s.fillStyle="#0a150a";s.fillRect(cx-4,cy-4,8,8);
+  s.fillStyle="rgba(0,220,100,0.38)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("TMR 3-10x — SV-98 / C14 Precision Rifle",cx,cy-178);
+}
+
+function drawOKP7(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(255,255,255,0.45)";s.lineWidth=1;s.beginPath();s.arc(cx,cy,55,Math.PI*0.1,Math.PI*1.9);s.stroke();s.beginPath();s.arc(cx,cy,55,Math.PI*1.1,Math.PI*0.9);s.stroke();
+  s.fillStyle="rgba(255,40,40,0.8)";s.beginPath();s.moveTo(cx,cy-10);s.lineTo(cx+8,cy);s.lineTo(cx-8,cy);s.closePath();s.fill();
+  s.fillStyle="rgba(255,40,40,0.6)";s.beginPath();s.arc(cx,cy-18,1.5,0,Math.PI*2);s.fill();
+  s.strokeStyle="rgba(255,40,40,0.5)";s.lineWidth=0.8;s.beginPath();s.moveTo(cx-3,cy+3);s.lineTo(cx+3,cy+3);s.stroke();
+  s.fillStyle="rgba(255,40,40,0.35)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("OKP-7 1x Reflex — RUS",cx,cy-28);
+}
+
+function drawKobra(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(255,60,30,0.7)";s.lineWidth=1;s.beginPath();s.moveTo(cx-12,cy-8);s.lineTo(cx+12,cy-8);s.stroke();s.beginPath();s.moveTo(cx,cy-8);s.lineTo(cx,cy+5);s.stroke();
+  s.fillStyle="rgba(255,60,30,0.85)";s.beginPath();s.arc(cx,cy,2,0,Math.PI*2);s.fill();
+  s.fillStyle="rgba(255,60,30,0.7)";s.beginPath();s.moveTo(cx,cy-14);s.lineTo(cx+6,cy-9);s.lineTo(cx-6,cy-9);s.closePath();s.fill();
+  s.strokeStyle="rgba(255,60,30,0.15)";s.lineWidth=0.6;s.beginPath();s.arc(cx,cy,35,0,Math.PI*2);s.stroke();
+  s.fillStyle="rgba(255,60,30,0.35)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("Kobra EKP-1S-03 1x — RUS",cx,cy-26);
+}
+
+function drawAimpoint(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(255,255,255,0.04)";s.lineWidth=0.5;s.beginPath();s.arc(cx,cy,90,0,Math.PI*2);s.stroke();
+  const grad=s.createRadialGradient(cx,cy,0,cx,cy,8);grad.addColorStop(0,"rgba(255,25,25,1)");grad.addColorStop(0.3,"rgba(255,25,25,0.5)");grad.addColorStop(1,"rgba(255,25,25,0)");
+  s.fillStyle=grad;s.beginPath();s.arc(cx,cy,8,0,Math.PI*2);s.fill();
+  s.fillStyle="#ff0000";s.beginPath();s.arc(cx,cy,2.2,0,Math.PI*2);s.fill();
+  s.fillStyle="rgba(255,30,30,0.3)";s.font="8px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("M68 CCO 1x — Aimpoint CompM2 — US Army / USMC",cx,cy-20);
+}
+
+function drawDocter(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(255,255,255,0.03)";s.lineWidth=0.5;s.beginPath();s.arc(cx,cy,60,0,Math.PI*2);s.stroke();
+  const grad=s.createRadialGradient(cx,cy,0,cx,cy,5);grad.addColorStop(0,"rgba(255,30,30,0.95)");grad.addColorStop(0.3,"rgba(255,30,30,0.4)");grad.addColorStop(1,"rgba(255,30,30,0)");
+  s.fillStyle=grad;s.beginPath();s.arc(cx,cy,5,0,Math.PI*2);s.fill();
+  s.fillStyle="#ff0000";s.beginPath();s.arc(cx,cy,1.8,0,Math.PI*2);s.fill();
+  s.fillStyle="rgba(255,30,30,0.3)";s.font="7px 'Segoe UI','PingFang SC',sans-serif";s.textAlign="center";s.fillText("Docter/Noblex 1x — CQB / Backup Sight",cx,cy-14);
+}
+
+/* ==========================================================================
+   SCREEN CAPTURE SYSTEM (SMH-inspired)
+
+   Uses getDisplayMedia() for live screen capture or clipboard paste for
+   screenshots. User calibrates by selecting two known-distance points.
+   ========================================================================== */
+let capImage=null,capStream=null,capCalibrated=false;
+let capScale=1; // meters per pixel after calibration
+let capMortar=null,capTarget=null; // {x,y} in image pixel coords
+let capCalP1=null,capCalP2=null,capCalDist=0; // calibration points + distance
+
+function resetCapture(){
+  capImage=null;capCalibrated=false;capMortar=null;capTarget=null;
+  capCalP1=null;capCalP2=null;capCalDist=0;capScale=1;
+  if(capStream){capStream.getTracks().forEach(t=>t.stop());capStream=null;}
+  const pw=document.getElementById("cap-preview-wrap");
+  const ph=document.getElementById("cap-placeholder");
+  const cb=document.getElementById("cap-btn-clear-cap");
+  pw.classList.remove("show");ph.style.display="";
+  cb.style.display="none";
+  capCvs.width=1;capCvs.height=1;
+  document.getElementById("cap-status").textContent="";
+  document.getElementById("cap-area").classList.remove("has-image");
+}
+
+async function captureScreen(){
+  try{
+    resetCapture();
+    const stream=await navigator.mediaDevices.getDisplayMedia({video:{mediaSource:"window"},preferCurrentTab:false});
+    capStream=stream;
+    const videoTrack=stream.getVideoTracks()[0];
+    document.getElementById("cap-status").textContent="截屏中 — 请在游戏内打开地图 (M键)，按任意键定格画面";
+
+    // Create video element to capture frame
+    const video=document.createElement("video");
+    video.srcObject=stream;
+    await video.play();
+
+    // Wait a moment then capture frame
+    const onKey=async(e)=>{
+      if(e.key==="Escape"){resetCapture();document.getElementById("cap-status").textContent="已取消";return;}
+      // Capture current frame
+      const c=document.createElement("canvas");
+      c.width=video.videoWidth;c.height=video.videoHeight;
+      const cx=c.getContext("2d");cx.drawImage(video,0,0);
+
+      // Stop stream
+      stream.getTracks().forEach(t=>t.stop());
+      capStream=null;
+      document.removeEventListener("keydown",onKey);
+
+      await processCaptureImage(c);
+    };
+    document.addEventListener("keydown",onKey);
+
+    // Also capture on stream stop
+    videoTrack.addEventListener("ended",async()=>{
+      document.removeEventListener("keydown",onKey);
+      const c=document.createElement("canvas");
+      c.width=video.videoWidth;c.height=video.videoHeight;
+      const cx=c.getContext("2d");cx.drawImage(video,0,0);
+      await processCaptureImage(c);
+    });
+
+  }catch(err){
+    console.error("Screen capture failed:",err);
+    document.getElementById("cap-status").textContent="截屏失败: "+err.message;
+    toast("截屏失败，尝试使用粘贴截图 (Ctrl+V)");
+  }
+}
+
+async function pasteFromClipboard(){
+  try{
+    resetCapture();
+    const items=await navigator.clipboard.read();
+    for(const item of items){
+      for(const type of item.types){
+        if(type.startsWith("image/")){
+          const blob=await item.getType(type);
+          const url=URL.createObjectURL(blob);
+          const img=new Image();
+          await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;});
+          const c=document.createElement("canvas");
+          c.width=img.width;c.height=img.height;
+          const cx=c.getContext("2d");cx.drawImage(img,0,0);
+          URL.revokeObjectURL(url);
+          await processCaptureImage(c);
+          return;
+        }
+      }
+    }
+    toast("剪贴板中无图片，请先截图游戏内地图 (PrintScreen)");
+  }catch(err){
+    toast("粘贴失败: "+err.message);
+  }
+}
+
+async function processCaptureImage(sourceCanvas){
+  capImage=sourceCanvas;
+  const pw=document.getElementById("cap-preview-wrap");
+  const ph=document.getElementById("cap-placeholder");
+  const cb=document.getElementById("cap-btn-clear-cap");
+  capCvs.width=sourceCanvas.width;
+  capCvs.height=sourceCanvas.height;
+  capCtx.drawImage(sourceCanvas,0,0);
+  ph.style.display="none";pw.classList.add("show");cb.style.display="";
+  document.getElementById("cap-area").classList.add("has-image");
+  document.getElementById("cap-status").textContent=
+    "截图已加载 ("+sourceCanvas.width+"×"+sourceCanvas.height+") — 请校准：点击地图上两个已知距离点";
+  capCalibrated=false;capMortar=null;capTarget=null;
+  capCalP1=null;capCalP2=null;
+  toast("截图已加载，请先校准比例尺");
+}
+
+// Calibration: user clicks two known-distance points on the map screenshot
+function setCalPoint(x,y){
+  if(!capImage)return;
+  if(!capCalP1){capCalP1={x,y};drawCapOverlay();document.getElementById("cap-status").textContent="校准点1已设 — 请点击第二个点 (如地图300m网格线另一端点)";}
+  else if(!capCalP2){capCalP2={x,y};drawCapOverlay();document.getElementById("cap-status").textContent="校准点2已设 — 请在下方面板输入两点间的实际距离";}
+}
+
+function finalizeCalibration(distMeters){
+  if(!capCalP1||!capCalP2)return;
+  capCalDist=distMeters;
+  const dx=capCalP2.x-capCalP1.x,dy=capCalP2.y-capCalP1.y;
+  const pixelDist=Math.sqrt(dx*dx+dy*dy);
+  capScale=distMeters/pixelDist;
+  capCalibrated=true;
+  drawCapOverlay();
+  document.getElementById("cap-status").textContent=
+    "已校准: "+distMeters+"m = "+pixelDist.toFixed(1)+"px → "+(capScale*100).toFixed(2)+"cm/px | 左键=发射点 右键=目标点";
+  toast("校准完成! 缩放比例: 1px = "+(capScale*100).toFixed(2)+"cm");
+}
+
+function setCapPoint(x,y,isTarget){
+  if(!capCalibrated){setCalPoint(x,y);return;}
+  if(!isTarget){capMortar={x,y};}
+  else{capTarget={x,y};}
+  drawCapOverlay();
+  updateCaptureCalc();
+}
+
+function updateCaptureCalc(){
+  if(!capMortar||!capTarget)return;
+  const dx=capTarget.x-capMortar.x,dy=capTarget.y-capMortar.y;
+  const pixelDist=Math.sqrt(dx*dx+dy*dy);
+  const distM=pixelDist*capScale;
+  document.getElementById("cap-status").innerHTML=
+    "截屏计算: <b>"+Math.round(distM)+"m</b> | 方位角: <b>"+((Math.atan2(dx,-dy)*180/Math.PI+360)%360).toFixed(1)+"°</b> | 密位: <b>"+(calcMortar(distM)||"--")+"mil</b>";
+}
+
+function drawCapOverlay(){
+  capCtx.clearRect(0,0,capCvs.width,capCvs.height);
+  capCtx.drawImage(capImage,0,0);
+  // Draw calibration points
+  if(capCalP1){capCtx.fillStyle="#2ecc71";capCtx.strokeStyle="#2ecc71";capCtx.lineWidth=2;capCtx.beginPath();capCtx.arc(capCalP1.x,capCalP1.y,8,0,Math.PI*2);capCtx.fill();capCtx.stroke();capCtx.fillStyle="#fff";capCtx.font="bold 10px Consolas";capCtx.textAlign="center";capCtx.fillText("P1",capCalP1.x,capCalP1.y-14);}
+  if(capCalP2){capCtx.fillStyle="#5b9cf5";capCtx.strokeStyle="#5b9cf5";capCtx.lineWidth=2;capCtx.beginPath();capCtx.arc(capCalP2.x,capCalP2.y,8,0,Math.PI*2);capCtx.fill();capCtx.stroke();capCtx.fillStyle="#fff";capCtx.font="bold 10px Consolas";capCtx.textAlign="center";capCtx.fillText("P2",capCalP2.x,capCalP2.y-14);}
+  // Draw calibration line
+  if(capCalP1&&capCalP2){capCtx.strokeStyle="rgba(212,148,43,0.6)";capCtx.lineWidth=2;capCtx.setLineDash([6,4]);capCtx.beginPath();capCtx.moveTo(capCalP1.x,capCalP1.y);capCtx.lineTo(capCalP2.x,capCalP2.y);capCtx.stroke();capCtx.setLineDash([]);}
+  // Draw mortar/target points on captured map
+  if(capCalibrated){
+    if(capMortar){capCtx.fillStyle="#2ecc71";capCtx.strokeStyle="#2ecc71";capCtx.lineWidth=2.5;capCtx.beginPath();capCtx.arc(capMortar.x,capMortar.y,10,0,Math.PI*2);capCtx.stroke();capCtx.beginPath();capCtx.arc(capMortar.x,capMortar.y,4,0,Math.PI*2);capCtx.fill();capCtx.fillStyle="#fff";capCtx.font="bold 10px Consolas";capCtx.textAlign="center";capCtx.fillText("M",capMortar.x,capMortar.y-16);}
+    if(capTarget){capCtx.fillStyle="#e74c3c";capCtx.strokeStyle="#e74c3c";capCtx.lineWidth=2.5;capCtx.beginPath();capCtx.arc(capTarget.x,capTarget.y,10,0,Math.PI*2);capCtx.stroke();capCtx.beginPath();capCtx.arc(capTarget.x,capTarget.y,4,0,Math.PI*2);capCtx.fill();capCtx.fillStyle="#fff";capCtx.font="bold 10px Consolas";capCtx.textAlign="center";capCtx.fillText("T",capTarget.x,capTarget.y-16);}
+    if(capMortar&&capTarget){capCtx.strokeStyle="rgba(212,148,43,0.55)";capCtx.lineWidth=2;capCtx.setLineDash([8,4]);capCtx.beginPath();capCtx.moveTo(capMortar.x,capMortar.y);capCtx.lineTo(capTarget.x,capTarget.y);capCtx.stroke();capCtx.setLineDash([]);}
+  }
+}
+
+/* ==========================================================================
+   EVENTS
+   ========================================================================== */
+function evPos(e){const r=canvas.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];}
+canvas.addEventListener("mousedown",(e)=>{
+  if(!cmap)return;e.preventDefault();
+  const[sx,sy]=evPos(e);
+  if(e.button===0&&!e.ctrlKey&&!e.shiftKey){
+    if(mPos){const[mx,my]=g2s(mPos.gx,mPos.gy);if(Math.hypot(sx-mx,sy-my)<16){dragging=true;dt="mortar";dlX=sx;dlY=sy;canvas.style.cursor="grabbing";return;}}
+    if(tPos){const[tx,ty]=g2s(tPos.gx,tPos.gy);if(Math.hypot(sx-tx,sy-ty)<16){dragging=true;dt="target";dlX=sx;dlY=sy;canvas.style.cursor="grabbing";return;}}
+  }
+  if(e.button===1||(e.button===0&&e.ctrlKey)){dragging=true;dt="pan";dlX=sx;dlY=sy;mwrap.classList.add("panning");return;}
+  const[gx,gy]=s2g(sx,sy);
+  ustack.push({m:mPos?{...mPos}:null,t:tPos?{...tPos}:null});if(ustack.length>50)ustack.shift();
+  if(e.button===0){if(e.shiftKey||placing==="target"){tPos={gx,gy};toast("目标已设置");}else{mPos={gx,gy};toast("发射点已设置");}}
+  else if(e.button===2){tPos={gx,gy};toast("目标已设置");}
+  updateUI();requestAnimationFrame(render);
+});
+canvas.addEventListener("contextmenu",(e)=>e.preventDefault());
+canvas.addEventListener("mousemove",(e)=>{
+  const[sx,sy]=evPos(e);[mgX,mgY]=s2g(sx,sy);
+  if(dragging&&dt){const dx=sx-dlX,dy=sy-dlY;if(dt==="pan"){panX+=dx;panY+=dy;}else if(dt==="mortar"&&mPos){const scl=cmap.dim[0]/(TILE_SIZE*(1<<zoom));mPos.gx+=dx*scl;mPos.gy-=dy*scl;}else if(dt==="target"&&tPos){const scl=cmap.dim[0]/(TILE_SIZE*(1<<zoom));tPos.gx+=dx*scl;tPos.gy-=dy*scl;}dlX=sx;dlY=sy;updateUI();requestAnimationFrame(render);return;}
+  if(mPos){const[mx,my]=g2s(mPos.gx,mPos.gy);if(Math.hypot(sx-mx,sy-my)<16){canvas.style.cursor="grab";return;}}
+  if(tPos){const[tx,ty]=g2s(tPos.gx,tPos.gy);if(Math.hypot(sx-tx,sy-ty)<16){canvas.style.cursor="grab";return;}}
+  canvas.style.cursor="crosshair";
+});
+window.addEventListener("mouseup",()=>{if(dragging&&dt&&dt!=="pan"){updateUI();requestAnimationFrame(render);}dragging=false;dt=null;mwrap.classList.remove("panning");canvas.style.cursor="crosshair";});
+canvas.addEventListener("wheel",(e)=>{
+  if(!cmap)return;e.preventDefault();
+  const[sx,sy]=evPos(e);const[gxBefore,gyBefore]=s2g(sx,sy);
+  if(e.deltaY<0&&zoom<5)zoom++;else if(e.deltaY>0&&zoom>1)zoom--;
+  const[pxA,pyA]=g2p(gxBefore,gyBefore);panX=sx-pxA;panY=sy-pyA;
+  ensureTiles(zoom);requestAnimationFrame(render);updateUI();
+},{passive:false});
+canvas.addEventListener("touchstart",(e)=>{if(e.touches.length===1){const[sx,sy]=evPos(e.touches[0]);dragging=true;dt="pan";dlX=sx;dlY=sy;}},{passive:false});
+canvas.addEventListener("touchmove",(e)=>{e.preventDefault();if(!dragging)return;const[sx,sy]=evPos(e.touches[0]);panX+=sx-dlX;panY+=sy-dlY;dlX=sx;dlY=sy;requestAnimationFrame(render);},{passive:false});
+canvas.addEventListener("touchend",()=>{dragging=false;dt=null;});
+window.addEventListener("keydown",(e)=>{
+  if(e.ctrlKey&&e.key==="z"){e.preventDefault();if(ustack.length>0){const p=ustack.pop();mPos=p.m;tPos=p.t;updateUI();requestAnimationFrame(render);toast("已撤销");}}
+  if(e.key==="f"||e.key==="F"){if(mPos&&tPos){const cx=(mPos.gx+tPos.gx)/2,cy=(mPos.gy+tPos.gy)/2;const[px,py]=g2p(cx,cy);panX=canvas.width/2-px;panY=canvas.height/2-py;}else if(mPos){const[px,py]=g2p(mPos.gx,mPos.gy);panX=canvas.width/2-px;panY=canvas.height/2-py;}requestAnimationFrame(render);toast("居中");}
+  if(e.key==="r"||e.key==="R"){zoom=3;panX=0;panY=0;requestAnimationFrame(render);updateUI();toast("已重置");}
+  if(e.key==="m"||e.key==="M"){placing="mortar";document.getElementById("btn-set-mortar").style.borderColor="var(--accent)";document.getElementById("btn-set-target").style.borderColor="var(--border)";}
+  if(e.key==="t"||e.key==="T"){placing="target";document.getElementById("btn-set-target").style.borderColor="var(--accent)";document.getElementById("btn-set-mortar").style.borderColor="var(--border)";}
+  // Ctrl+V paste screenshot into capture tab
+  if(e.ctrlKey&&e.key==="v"){const activeTab=document.querySelector(".tab-content.active");if(activeTab&&activeTab.id==="tab-capture"){e.preventDefault();pasteFromClipboard();}}
+});
+
+/* ==========================================================================
+   CAPTURE CANVAS EVENTS
+   ========================================================================== */
+capCvs.addEventListener("mousedown",(e)=>{
+  if(!capImage)return;
+  const r=capCvs.getBoundingClientRect();
+  const sx=(e.clientX-r.left)*(capCvs.width/r.width);
+  const sy=(e.clientY-r.top)*(capCvs.height/r.height);
+  if(e.button===0){setCapPoint(sx,sy,false);}
+  else if(e.button===2){setCapPoint(sx,sy,true);}
+});
+capCvs.addEventListener("contextmenu",(e)=>e.preventDefault());
+
+/* ==========================================================================
+   BUTTONS & UI
+   ========================================================================== */
+// Tab switching
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
+// Map buttons
+document.getElementById("btn-set-mortar").addEventListener("click",()=>{placing="mortar";document.getElementById("btn-set-mortar").style.borderColor="var(--accent)";document.getElementById("btn-set-target").style.borderColor="var(--border)";toast("模式: 发射点");});
+document.getElementById("btn-set-target").addEventListener("click",()=>{placing="target";document.getElementById("btn-set-target").style.borderColor="var(--accent)";document.getElementById("btn-set-mortar").style.borderColor="var(--border)";toast("模式: 目标点");});
+document.getElementById("btn-clear").addEventListener("click",()=>{ustack.push({m:mPos?{...mPos}:null,t:tPos?{...tPos}:null});if(ustack.length>50)ustack.shift();mPos=null;tPos=null;updateUI();requestAnimationFrame(render);toast("已清除");});
+document.getElementById("btn-swap").addEventListener("click",()=>{[mPos,tPos]=[tPos,mPos];updateUI();requestAnimationFrame(render);toast("已交换");});
+document.getElementById("tg-grid").addEventListener("click",function(){showGrid=!showGrid;this.classList.toggle("on");requestAnimationFrame(render);});
+document.getElementById("tg-ring").addEventListener("click",function(){showRing=!showRing;this.classList.toggle("on");requestAnimationFrame(render);});
+document.getElementById("map-select").addEventListener("change",()=>{
+  cmap=MAPS.find(m=>m.k===document.getElementById("map-select").value);tcache.clear();tpend.clear();
+  mPos=null;tPos=null;ustack=[];zoom=3;panX=0;panY=0;
+  updateUI();loadPreload();
+  loadHeightmap(cmap.k);
+  toast("地图: "+cmap.n);
+});
+document.getElementById("scope-weapon").addEventListener("change",()=>{curWeapon=WEAPONS.find(w=>w.id===document.getElementById("scope-weapon").value)||WEAPONS[0];popZeroes();scopeZero=curWeapon.zp[0];document.getElementById("scope-zero").value=scopeZero;updateScopeDisplay();updateUI();});
+document.getElementById("scope-zero").addEventListener("change",()=>{scopeZero=parseInt(document.getElementById("scope-zero").value);updateScopeDisplay();updateUI();toast("归零切换到 "+scopeZero+"m");});
+
+// Capture buttons
+document.getElementById("cap-btn-screen").addEventListener("click",captureScreen);
+document.getElementById("cap-btn-paste").addEventListener("click",pasteFromClipboard);
+document.getElementById("cap-btn-clear-cap").addEventListener("click",resetCapture);
+
+// Global clipboard paste listener for capture tab
+document.addEventListener("paste",(e)=>{
+  const activeTab=document.querySelector(".tab-content.active");
+  if(!activeTab||activeTab.id!=="tab-capture")return;
+  // Only handle if focus is not on an input
+  if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
+  e.preventDefault();pasteFromClipboard();
+});
+
+/* ==========================================================================
+   TILE LOADING
+   ========================================================================== */
+function batchLoadTiles(map,z,cb){const n=1<<z,batch=[];for(let tx=0;tx<n;tx++)for(let ty=0;ty<n;ty++)batch.push(loadTile(map,z,tx,ty));Promise.allSettled(batch).then(()=>{if(cb)cb();});}
+function loadPreload(){if(!cmap)return;loader.classList.add("on");loadTile(cmap.k,0,0,0).then(()=>{zoom=0;rsz();const tp=TILE_SIZE;panX=canvas.width/2-tp/2;panY=canvas.height/2-tp/2;requestAnimationFrame(render);batchLoadTiles(cmap.k,3,()=>{loader.classList.remove("on");zoom=3;rsz();const tp=TILE_SIZE*8;panX=canvas.width/2-tp/2;panY=canvas.height/2-tp/2;requestAnimationFrame(render);updateUI();});});}
+function ensureTiles(z){if(!cmap)return;const n=1<<z;for(let tx=0;tx<n;tx++)for(let ty=0;ty<n;ty++){const ck=cmap.k+"/"+z+"/"+tx+"/"+ty;if(!tcache.has(ck)&&!tpend.has(ck))loadTile(cmap.k,z,tx,ty);}}
+
+/* ==========================================================================
+   INIT
+   ========================================================================== */
+let toastTimer;
+function toast(msg){clearTimeout(toastTimer);const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");toastTimer=setTimeout(()=>t.classList.remove("show"),1600);}
+function popZeroes(){const sel=document.getElementById("scope-zero");sel.innerHTML="";curWeapon.zp.forEach(z=>{const o=document.createElement("option");o.value=z;o.textContent=z+"m";if(z===curWeapon.zp[0])o.selected=true;sel.appendChild(o);});scopeZero=curWeapon.zp[0];}
+
+function init(){
+  MAPS.forEach(m=>{const o=document.createElement("option");o.value=m.k;o.textContent=m.n+" ("+m.bd[0]+"m)";document.getElementById("map-select").appendChild(o);});
+
+  // Weapon dropdown with faction optgroups
+  const factions={"US Army":[],"USMC":[],"RUS":[],"BAF":[],"CAF":[],"INS/MIL":[],"Marksman/Sniper":[],"CQB/Backup":[]};
+  WEAPONS.forEach(w=>{
+    if(/US AR|US Army/i.test(w.n))factions["US Army"].push(w);
+    else if(/USMC/i.test(w.n))factions["USMC"].push(w);
+    else if(/RUS/i.test(w.n)&&!/CQB/i.test(w.n)&&!/DM|Sniper/i.test(w.n))factions["RUS"].push(w);
+    else if(/BAF/i.test(w.n))factions["BAF"].push(w);
+    else if(/CAF/i.test(w.n))factions["CAF"].push(w);
+    else if(/INS|MIL/i.test(w.n))factions["INS/MIL"].push(w);
+    else if(/DM|Sniper|Marksman|SASS|EBR|SVD/i.test(w.n))factions["Marksman/Sniper"].push(w);
+    else factions["CQB/Backup"].push(w);
+  });
+  const sel=document.getElementById("scope-weapon");
+  for(const[group,weaps]of Object.entries(factions)){
+    if(weaps.length===0)continue;
+    const og=document.createElement("optgroup");og.label=group;
+    weaps.forEach(w=>{const o=document.createElement("option");o.value=w.id;const parts=w.n.split("+");o.textContent=(parts[1]?parts[1].trim()+" — "+parts[0].trim():w.n);og.appendChild(o);});
+    sel.appendChild(og);
+  }
+
+  document.getElementById("map-select").value="albasrah";cmap=MAPS.find(m=>m.k==="albasrah");
+  curWeapon=WEAPONS[0];popZeroes();rsz();updateUI();updateScopeDisplay();loadPreload();
+  document.getElementById("tg-grid").classList.add("on");document.getElementById("tg-ring").classList.add("on");
+  // Try loading heightmap for initial map
+  loadHeightmap("albasrah");
+}
+
+window.addEventListener("resize",()=>{rsz();requestAnimationFrame(render);});
+new ResizeObserver(()=>{rsz();requestAnimationFrame(render);}).observe(mwrap);
+init();
+</script>
+</body>
+</html>

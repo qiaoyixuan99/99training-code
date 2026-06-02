@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Daily Forge — 思维锻造系统</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2a2e3f;
+    --text: #e4e6f0;
+    --text2: #9a9db5;
+    --text3: #636883;
+    --gold: #f0b90b;
+    --gold2: #c99400;
+    --xp: #00d4aa;
+    --xp2: #009e7e;
+    --streak: #ff6b6b;
+    --morning: #f0a050;
+    --noon: #ffd700;
+    --afternoon: #60b0f0;
+    --evening: #7c5ce7;
+    --danger: #e0556a;
+    --radius: 14px;
+    --radius-sm: 10px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { font-size:15px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height:100vh;
+    line-height:1.5;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app { max-width:480px; margin:0 auto; padding:16px 16px 40px; }
+
+  /* ── Header ── */
+  .header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 0 16px;
+  }
+  .header-date { font-size:0.85rem; color:var(--text3); }
+  .header-title { font-size:1.25rem; font-weight:700; letter-spacing:-0.02em; }
+  .header-title span { color:var(--gold); }
+
+  /* ── Stats Row ── */
+  .stats-row {
+    display:flex; gap:10px; margin-bottom:18px;
+  }
+  .stat-card {
+    flex:1; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:12px; text-align:center;
+  }
+  .stat-value { font-size:1.5rem; font-weight:700; }
+  .stat-label { font-size:0.7rem; color:var(--text3); margin-top:2px; text-transform:uppercase; letter-spacing:0.05em; }
+  .stat-card.streak .stat-value { color:var(--streak); }
+  .stat-card.xp .stat-value { color:var(--xp); }
+  .stat-card.level .stat-value { color:var(--gold); }
+
+  /* ── XP Bar ── */
+  .xp-section { margin-bottom:20px; }
+  .xp-header { display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text2); margin-bottom:6px; }
+  .xp-bar-outer { height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+  .xp-bar-inner { height:100%; background:linear-gradient(90deg, var(--xp2), var(--xp)); border-radius:4px; transition:width 0.5s ease; }
+
+  /* ── Identity Banner ── */
+  .identity-banner {
+    background:linear-gradient(135deg, #1a1d30 0%, #1d2035 100%);
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; margin-bottom:20px; text-align:center;
+  }
+  .identity-title { font-size:0.7rem; color:var(--text3); text-transform:uppercase; letter-spacing:0.08em; }
+  .identity-name { font-size:1.15rem; font-weight:700; color:var(--gold); margin:4px 0; }
+  .identity-sub { font-size:0.8rem; color:var(--text2); }
+  .identity-sub strong { color:var(--xp); }
+
+  /* ── Section Title ── */
+  .section-title { font-size:0.75rem; color:var(--text3); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; }
+
+  /* ── Task Card ── */
+  .task-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px; margin-bottom:12px;
+    transition:all 0.25s;
+    position:relative; overflow:hidden;
+  }
+  .task-card.completed { border-color:var(--xp); background:#0f1a17; }
+  .task-card.completed::before {
+    content:'✓'; position:absolute; top:12px; right:16px;
+    font-size:1.2rem; color:var(--xp); font-weight:700;
+  }
+  .task-time-badge {
+    display:inline-block; padding:3px 10px; border-radius:20px;
+    font-size:0.7rem; font-weight:600; margin-bottom:8px;
+    letter-spacing:0.03em;
+  }
+  .task-time-badge.morning { background:#3a2a14; color:var(--morning); }
+  .task-time-badge.noon { background:#3a3510; color:var(--noon); }
+  .task-time-badge.afternoon { background:#14283a; color:var(--afternoon); }
+  .task-time-badge.evening { background:#2a1a4a; color:var(--evening); }
+
+  .task-title { font-size:1rem; font-weight:600; margin-bottom:4px; }
+  .task-desc { font-size:0.8rem; color:var(--text2); margin-bottom:12px; }
+  .task-xp { font-size:0.7rem; color:var(--xp); font-weight:500; }
+
+  /* ── Reflection ── */
+  .reflection-area { display:none; margin-top:12px; }
+  .task-card.completed .reflection-area { display:block; }
+  .reflection-prompt { font-size:0.78rem; color:var(--text2); margin-bottom:8px; font-style:italic; }
+  .reflection-input {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    color:var(--text); padding:10px 12px; border-radius:var(--radius-sm);
+    font-size:0.85rem; font-family:inherit; resize:none; min-height:56px;
+  }
+  .reflection-input:focus { outline:none; border-color:var(--xp); }
+
+  /* ── Buttons ── */
+  .btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:10px 20px; border-radius:24px; border:none;
+    font-size:0.85rem; font-weight:600; cursor:pointer;
+    transition:all 0.2s; font-family:inherit;
+  }
+  .btn-complete {
+    background:var(--surface2); color:var(--text); border:1px solid var(--border);
+  }
+  .btn-complete:hover { border-color:var(--xp); color:var(--xp); }
+  .btn-complete:active { transform:scale(0.96); }
+  .btn-save {
+    background:var(--xp); color:#000; margin-top:6px;
+  }
+  .btn-save:hover { background:var(--xp2); }
+  .btn-save:active { transform:scale(0.96); }
+
+  .btn-undo {
+    background:none; color:var(--text3); border:1px solid var(--border);
+    padding:6px 14px; font-size:0.75rem;
+  }
+
+  /* ── Reward Toast ── */
+  .toast {
+    position:fixed; top:20px; left:50%; transform:translateX(-50%);
+    padding:14px 24px; border-radius:28px; font-weight:700;
+    font-size:0.9rem; z-index:999;
+    animation: toastIn 0.4s ease, toastOut 0.4s ease 2.2s forwards;
+    pointer-events:none;
+  }
+  .toast.crit { background:var(--gold); color:#000; }
+  .toast.normal { background:var(--xp); color:#000; }
+  .toast.streak-bonus { background:var(--streak); color:#fff; }
+  .toast.level-up { background:linear-gradient(135deg, #f0b90b, #ff8c00); color:#000; font-size:1rem; }
+
+  @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(-20px);} to{opacity:1;transform:translateX(-50%) translateY(0);} }
+  @keyframes toastOut { from{opacity:1;} to{opacity:0;transform:translateX(-50%) translateY(-10px);} }
+
+  /* ── Weekly Overview ── */
+  .week-grid { display:flex; gap:6px; margin-bottom:20px; }
+  .week-day {
+    flex:1; text-align:center; padding:10px 4px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-sm); font-size:0.7rem;
+  }
+  .week-day.today { border-color:var(--gold); }
+  .week-day.done { border-color:var(--xp); background:#0f1a17; }
+  .week-day .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-top:4px; }
+  .week-day .dot.all-done { background:var(--xp); }
+  .week-day .dot.partial { background:var(--gold); }
+  .week-day .dot.none { background:var(--border); }
+
+  /* ── Bottom Nav ── */
+  .nav { display:flex; gap:8px; margin-top:24px; }
+  .nav-btn {
+    flex:1; text-align:center; padding:12px 8px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-sm); color:var(--text2);
+    font-size:0.78rem; cursor:pointer; font-family:inherit;
+    transition:all 0.2s;
+  }
+  .nav-btn.active { border-color:var(--gold); color:var(--gold); }
+
+  /* ── History View ── */
+  .history-list { display:none; }
+  .history-item {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:12px; margin-bottom:8px;
+  }
+  .history-date { font-weight:600; font-size:0.85rem; }
+  .history-summary { font-size:0.75rem; color:var(--text2); margin-top:4px; }
+  .history-tags { display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
+  .history-tag { font-size:0.65rem; padding:2px 8px; border-radius:10px; }
+  .history-tag.eng { background:#14283a; color:var(--afternoon); }
+  .history-tag.agent { background:#2a1a4a; color:var(--evening); }
+  .history-tag.all-done { background:#0f1a17; color:var(--xp); }
+
+  /* ── Reset Button ── */
+  .reset-area { margin-top:32px; text-align:center; }
+  .btn-reset { background:none; border:1px solid var(--border); color:var(--text3); padding:6px 16px; border-radius:20px; font-size:0.7rem; cursor:pointer; font-family:inherit; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="header-date" id="dateDisplay"></div>
+      <div class="header-title">Daily <span>Forge</span></div>
+    </div>
+    <div style="font-size:1.8rem;">🔥</div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card streak">
+      <div class="stat-value" id="streakCount">0</div>
+      <div class="stat-label">连续天数</div>
+    </div>
+    <div class="stat-card xp">
+      <div class="stat-value" id="xpDisplay">0</div>
+      <div class="stat-label">总 XP</div>
+    </div>
+    <div class="stat-card level">
+      <div class="stat-value" id="levelDisplay">Lv.1</div>
+      <div class="stat-label" id="rankDisplay">Prompt 学徒</div>
+    </div>
+  </div>
+
+  <!-- XP Bar -->
+  <div class="xp-section">
+    <div class="xp-header"><span id="xpProgressLabel">0 / 100 XP</span><span>下一级: <strong id="nextRank">RAG 探索者</strong></span></div>
+    <div class="xp-bar-outer"><div class="xp-bar-inner" id="xpBar" style="width:0%"></div></div>
+  </div>
+
+  <!-- Identity Banner -->
+  <div class="identity-banner">
+    <div class="identity-title">🎯 当前身份</div>
+    <div class="identity-name" id="identityName">Prompt 学徒</div>
+    <div class="identity-sub">距离 <strong id="identityNext">RAG 探索者</strong> 还需 <strong id="identityRemain">100 XP</strong></div>
+  </div>
+
+  <!-- Today's View -->
+  <div id="viewToday">
+    <div class="section-title">📋 今日锻造任务</div>
+    <div id="taskList"></div>
+
+    <!-- Mini Week -->
+    <div class="section-title" style="margin-top:24px;">📅 本周</div>
+    <div class="week-grid" id="weekGrid"></div>
+  </div>
+
+  <!-- History View -->
+  <div id="viewHistory" class="history-list">
+    <div class="section-title">📜 近期记录</div>
+    <div id="historyList"></div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="nav">
+    <button class="nav-btn active" id="navToday" onclick="switchView('today')">⚒️ 今日</button>
+    <button class="nav-btn" id="navHistory" onclick="switchView('history')">📜 记录</button>
+  </div>
+
+  <!-- Reset -->
+  <div class="reset-area">
+    <button class="btn-reset" onclick="resetAll()">重置全部数据</button>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer"></div>
+
+<script>
+// ──────────────────────────────────────
+// DATA MODEL
+// ──────────────────────────────────────
+const TASKS = [
+  {
+    id: 'morning',
+    timeLabel: '🌅 上午 · 1h',
+    timeClass: 'morning',
+    title: '语法 + 泛听',
+    descs: [
+      'Cambridge Grammar for IELTS — 完成 1 个单元练习',
+      'BBC World Service 泛听 15 分钟，保持语感',
+    ],
+    baseXP: 10,
+    track: 'eng',
+  },
+  {
+    id: 'noon',
+    timeLabel: '☀️ 中午 · 20min',
+    timeClass: 'noon',
+    title: '词汇突击',
+    descs: [
+      'Anki 雅思核心词库：新词 15 个 + 旧词复习',
+      '重点记忆昨日出错的词汇',
+    ],
+    baseXP: 5,
+    track: 'eng',
+  },
+  {
+    id: 'afternoon',
+    timeLabel: '🌤️ 下午 · 1h',
+    timeClass: 'afternoon',
+    title: '英文技术精读',
+    descs: [
+      '精读 1 篇英文技术文章（AI/Agent 方向）',
+      '拆解 3 个长难句，标注语法结构',
+    ],
+    baseXP: 10,
+    track: 'both',
+  },
+  {
+    id: 'evening',
+    timeLabel: '🌙 晚上 · 1.5h',
+    timeClass: 'evening',
+    title: 'Agent 开发实战',
+    descs: [
+      'DeepLearning.AI LangChain 短课 / RAG 实战',
+      '写代码，产出可运行的结果',
+    ],
+    baseXP: 20,
+    track: 'agent',
+  },
+];
+
+const REFLECTION_PROMPTS = [
+  '今天这个时段，我搞懂了什么之前不懂的？',
+  '用一句话总结刚才学到的核心概念：',
+  '如果给一个完全不懂的人讲刚才学到的内容，我会怎么说？',
+  '刚才学习中最让我兴奋的一个点是什么？',
+  '今天遇到什么困难？我是怎么解决的（或打算怎么解决）？',
+  '刚才学的东西，和我已有的知识有什么联系？',
+];
+
+const RANKS = [
+  { level: 1,  xp: 0,    name: 'Prompt 学徒',       icon: '🔰' },
+  { level: 2,  xp: 80,   name: 'Grammar 工匠',      icon: '📐' },
+  { level: 3,  xp: 180,  name: 'RAG 探索者',        icon: '🔍' },
+  { level: 4,  xp: 320,  name: 'Vector 航海家',     icon: '🧭' },
+  { level: 5,  xp: 500,  name: 'Chain 编织者',      icon: '⛓️' },
+  { level: 6,  xp: 720,  name: 'Function 召唤师',    icon: '🪄' },
+  { level: 7,  xp: 980,  name: 'Agent 架构师',      icon: '🏛️' },
+  { level: 8,  xp: 1300, name: 'Multi-Agent 指挥',  icon: '🎭' },
+  { level: 9,  xp: 1680, name: 'LangGraph 塑造者',  icon: '🧬' },
+  { level: 10, xp: 2120, name: 'AI 工程师',         icon: '⚡' },
+  { level: 11, xp: 2620, name: 'LLM 驯兽师',        icon: '🐉' },
+  { level: 12, xp: 3200, name: '推理系统设计者',    icon: '🧠' },
+  { level: 13, xp: 3860, name: '双语 AI 先锋',      icon: '🌐' },
+  { level: 14, xp: 4600, name: '全栈 Agent 大师',   icon: '👑' },
+  { level: 15, xp: 5500, name: '第二职业就绪',      icon: '🚀' },
+];
+
+function getRank(xp) {
+  for (let i = RANKS.length - 1; i >= 0; i--) {
+    if (xp >= RANKS[i].xp) return RANKS[i];
+  }
+  return RANKS[0];
+}
+function getNextRank(xp) {
+  for (let i = 0; i < RANKS.length; i++) {
+    if (xp < RANKS[i].xp) return RANKS[i];
+  }
+  return null;
+}
+
+// ──────────────────────────────────────
+// STATE (localStorage)
+// ──────────────────────────────────────
+const STORAGE_KEY = 'daily_forge_v1';
+function loadState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) return JSON.parse(raw);
+  return {
+    xp: 0,
+    streak: 0,
+    lastCompletedDate: null,
+    daily: {},       // { '2026-06-02': { morning: {done, reflect, bonus}, ... } }
+    weeklyReflections: {}, // { '2026-W22': '本周感悟...' }
+  };
+}
+function saveState(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let state = loadState();
+
+// ──────────────────────────────────────
+// DATE HELPERS
+// ──────────────────────────────────────
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function yesterdayStr() {
+  const d = new Date(); d.setDate(d.getDate()-1);
+  return d.toISOString().slice(0,10);
+}
+function getWeekBounds() {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    days.push(d.toISOString().slice(0,10));
+  }
+  return days;
+}
+
+// ──────────────────────────────────────
+// STREAK LOGIC
+// ──────────────────────────────────────
+function updateStreak() {
+  const today = todayStr();
+  const yesterday = yesterdayStr();
+  const todayTasks = state.daily[today];
+  const yesterdayTasks = state.daily[yesterday];
+  const allDoneToday = todayTasks && TASKS.every(t => todayTasks[t.id]?.done);
+
+  if (allDoneToday) {
+    if (state.lastCompletedDate === yesterday || state.lastCompletedDate === today) {
+      // continuing streak
+    } else if (state.lastCompletedDate && state.lastCompletedDate !== yesterday && state.lastCompletedDate !== today) {
+      state.streak = 0;
+    }
+    if (state.lastCompletedDate !== today) {
+      state.streak = (state.streak || 0) + 1;
+      state.lastCompletedDate = today;
+    }
+  } else if (!allDoneToday && state.lastCompletedDate && state.lastCompletedDate !== today && state.lastCompletedDate !== yesterday) {
+    state.streak = 0;
+  }
+}
+
+// ──────────────────────────────────────
+// RENDER
+// ──────────────────────────────────────
+let currentView = 'today';
+
+function switchView(view) {
+  currentView = view;
+  document.getElementById('viewToday').style.display = view === 'today' ? 'block' : 'none';
+  document.getElementById('viewHistory').style.display = view === 'history' ? 'block' : 'none';
+  document.getElementById('navToday').classList.toggle('active', view === 'today');
+  document.getElementById('navHistory').classList.toggle('active', view === 'history');
+  if (view === 'history') renderHistory();
+}
+
+function render() {
+  updateStreak();
+  saveState(state);
+
+  const today = todayStr();
+  const dateDisplay = document.getElementById('dateDisplay');
+  const now = new Date();
+  dateDisplay.textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 周${['日','一','二','三','四','五','六'][now.getDay()]}`;
+
+  const rank = getRank(state.xp);
+  const nextRank = getNextRank(state.xp);
+
+  // Stats
+  document.getElementById('streakCount').textContent = state.streak;
+  document.getElementById('xpDisplay').textContent = state.xp;
+  document.getElementById('levelDisplay').textContent = `Lv.${rank.level}`;
+  document.getElementById('rankDisplay').textContent = rank.name;
+
+  // XP Bar
+  let xpInLevel, xpNeeded;
+  if (nextRank) {
+    xpInLevel = state.xp - rank.xp;
+    xpNeeded = nextRank.xp - rank.xp;
+  } else {
+    xpInLevel = state.xp - rank.xp;
+    xpNeeded = 500; // last level
+  }
+  const pct = Math.min(100, Math.round((xpInLevel / xpNeeded) * 100));
+  document.getElementById('xpProgressLabel').textContent = `${xpInLevel} / ${xpNeeded} XP`;
+  document.getElementById('nextRank').textContent = nextRank ? nextRank.name : 'MAX';
+  document.getElementById('xpBar').style.width = pct + '%';
+
+  // Identity
+  document.getElementById('identityName').textContent = rank.icon + ' ' + rank.name;
+  document.getElementById('identityNext').textContent = nextRank ? nextRank.icon + ' ' + nextRank.name : '终极';
+  document.getElementById('identityRemain').textContent = nextRank ? `${nextRank.xp - state.xp} XP` : '—';
+
+  // Tasks
+  const todayTasks = state.daily[today] || {};
+  const taskList = document.getElementById('taskList');
+  taskList.innerHTML = TASKS.map((task, i) => {
+    const td = todayTasks[task.id] || { done: false, reflect: '', bonus: 0 };
+    const done = td.done;
+    const reflectIdx = (i + now.getDate()) % REFLECTION_PROMPTS.length;
+    const prompt = REFLECTION_PROMPTS[reflectIdx];
+    return `
+      <div class="task-card ${done ? 'completed' : ''}" id="card-${task.id}">
+        <span class="task-time-badge ${task.timeClass}">${task.timeLabel}</span>
+        <div class="task-title">${task.title}</div>
+        <div class="task-desc">${task.descs.map(d => `• ${d}`).join('<br>')}</div>
+        <div class="task-xp">⚡ 基础 ${task.baseXP} XP${td.bonus > 0 ? ` + 🎲 暴击 +${td.bonus} XP` : ''}</div>
+        ${done ? `
+          <div class="reflection-area">
+            <div class="reflection-prompt">💭 ${prompt}</div>
+            <textarea class="reflection-input" id="reflect-${task.id}" placeholder="写下你的思考...">${td.reflect || ''}</textarea>
+            <button class="btn btn-save" onclick="saveReflection('${task.id}')">💾 保存反思</button>
+            <button class="btn btn-undo" style="margin-left:6px;" onclick="undoTask('${task.id}')">↩ 撤销</button>
+          </div>
+        ` : `
+          <button class="btn btn-complete" onclick="completeTask('${task.id}')">✅ 完成打卡</button>
+        `}
+      </div>
+    `;
+  }).join('');
+
+  // Week Grid
+  const weekDays = getWeekBounds();
+  const weekGrid = document.getElementById('weekGrid');
+  const dayNames = ['一','二','三','四','五','六','日'];
+  weekGrid.innerHTML = weekDays.map((d, i) => {
+    const dd = state.daily[d];
+    const allDone = dd && TASKS.every(t => dd[t.id]?.done);
+    const partial = dd && TASKS.some(t => dd[t.id]?.done);
+    let dotClass = 'none';
+    if (allDone) dotClass = 'all-done';
+    else if (partial) dotClass = 'partial';
+    const isToday = d === today;
+    const displayDay = d.slice(5); // MM-DD
+    return `
+      <div class="week-day ${isToday ? 'today' : ''} ${allDone ? 'done' : ''}">
+        <div>${dayNames[i]}</div>
+        <div style="font-size:0.65rem;color:var(--text3);">${displayDay}</div>
+        <div class="dot ${dotClass}"></div>
+      </div>
+    `;
+  }).join('');
+
+  if (currentView === 'history') renderHistory();
+}
+
+// ──────────────────────────────────────
+// ACTIONS
+// ──────────────────────────────────────
+function completeTask(taskId) {
+  const task = TASKS.find(t => t.id === taskId);
+  const today = todayStr();
+  if (!state.daily[today]) state.daily[today] = {};
+
+  // Variable reward: 10% chance of critical hit (2x-3x)
+  const roll = Math.random();
+  let multiplier = 1;
+  let toastType = 'normal';
+  let toastMsg = '';
+  if (roll < 0.10) {
+    multiplier = Math.random() < 0.5 ? 3 : 2;
+    toastType = 'crit';
+    toastMsg = `🎯 暴击! ${multiplier}x XP! +${task.baseXP * multiplier} XP`;
+  } else {
+    toastMsg = `✅ +${task.baseXP} XP`;
+  }
+
+  const bonus = task.baseXP * (multiplier - 1);
+  const earned = task.baseXP * multiplier;
+
+  state.daily[today][taskId] = { done: true, reflect: '', bonus };
+  state.xp += earned;
+
+  // Check if all 4 done today
+  const allDone = TASKS.every(t => {
+    if (t.id === taskId) return true;
+    return state.daily[today][t.id]?.done;
+  });
+
+  updateStreak();
+
+  // All-done streak bonus
+  if (allDone && state.streak > 0 && state.streak % 7 === 0) {
+    const streakBonus = 50;
+    state.xp += streakBonus;
+    showToast(`🔥 连续 ${state.streak} 天! 额外 +${streakBonus} XP`, 'streak-bonus', 3000);
+  }
+
+  // Check level up
+  const oldRank = getRank(state.xp - earned);
+  const newRank = getRank(state.xp);
+  if (newRank.level > oldRank.level) {
+    setTimeout(() => showToast(`⬆️ 升级! ${newRank.icon} ${newRank.name}`, 'level-up', 3500), 600);
+  }
+
+  saveState(state);
+  showToast(toastMsg, toastType, 2500);
+  render();
+}
+
+function saveReflection(taskId) {
+  const today = todayStr();
+  const textarea = document.getElementById('reflect-' + taskId);
+  if (!textarea || !state.daily[today]) return;
+  state.daily[today][taskId].reflect = textarea.value.trim();
+  saveState(state);
+  showToast('💾 反思已保存', 'normal', 1800);
+}
+
+function undoTask(taskId) {
+  const today = todayStr();
+  if (!state.daily[today] || !state.daily[today][taskId]) return;
+  const bonus = state.daily[today][taskId].bonus || 0;
+  const task = TASKS.find(t => t.id === taskId);
+  state.xp -= (task.baseXP + bonus);
+  delete state.daily[today][taskId];
+  updateStreak();
+  saveState(state);
+  render();
+}
+
+function showToast(msg, type, duration) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), duration);
+}
+
+// ──────────────────────────────────────
+// HISTORY
+// ──────────────────────────────────────
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const dates = Object.keys(state.daily).sort().reverse().slice(0, 14);
+
+  if (dates.length === 0) {
+    list.innerHTML = '<div style="color:var(--text3);text-align:center;padding:32px;">还没有记录，开始今天的第一条吧 🚀</div>';
+    return;
+  }
+
+  list.innerHTML = dates.map(d => {
+    const dd = state.daily[d];
+    const engDone = [dd.morning, dd.noon].every(t => t?.done);
+    const agentDone = dd.evening?.done;
+    const bothDone = dd.afternoon?.done;
+    const allDone = TASKS.every(t => dd[t.id]?.done);
+    const dayXP = TASKS.reduce((sum, t) => {
+      if (dd[t.id]?.done) return sum + t.baseXP + (dd[t.id].bonus || 0);
+      return sum;
+    }, 0);
+    const reflection = TASKS.map(t => dd[t.id]?.reflect).filter(Boolean).join(' | ') || '—';
+
+    const [y,m,day] = d.split('-');
+    return `
+      <div class="history-item">
+        <div class="history-date">📅 ${y}年${m}月${day}日 <span style="color:var(--xp);">+${dayXP} XP</span></div>
+        <div class="history-summary">💬 ${reflection.slice(0, 80)}${reflection.length > 80 ? '...' : ''}</div>
+        <div class="history-tags">
+          ${allDone ? '<span class="history-tag all-done">✅ 全部完成</span>' : ''}
+          ${engDone ? '<span class="history-tag eng">🇬🇧 英语 ✓</span>' : ''}
+          ${agentDone ? '<span class="history-tag agent">🤖 Agent ✓</span>' : ''}
+          ${!engDone && !agentDone ? '<span class="history-tag" style="background:#3a1a1a;color:#e0556a;">⚠ 未完成</span>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function resetAll() {
+  if (confirm('确定要清除所有学习记录吗？此操作不可恢复。')) {
+    state = { xp: 0, streak: 0, lastCompletedDate: null, daily: {}, weeklyReflections: {} };
+    saveState(state);
+    render();
+    showToast('🔄 已重置，重新出发!', 'normal', 2000);
+  }
+}
+
+// ──────────────────────────────────────
+// INIT
+// ──────────────────────────────────────
+render();
+</script>
+</body>
+</html>

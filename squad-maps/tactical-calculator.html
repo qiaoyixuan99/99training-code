@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squad Tactical Calculator - 战术小队射击计算器</title>
+<style>
+:root {
+  --bg:#0a0e14; --surface:#131820; --surface2:#1a1f2b; --border:#252b36;
+  --text:#b0b8c4; --text-dim:#636d7a; --accent:#d4942b; --accent2:#e8b84b;
+  --green:#2ecc71; --red:#e74c3c; --blue:#3498db;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;height:100vh;overflow:hidden;user-select:none}
+
+/* Top Bar */
+#topbar{height:46px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;z-index:100}
+#topbar .logo{font-size:14px;font-weight:700;letter-spacing:2px;color:var(--accent2);white-space:nowrap}
+#map-select{background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:5px 26px 5px 8px;border-radius:4px;font-size:12px;cursor:pointer;outline:none;min-width:160px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23636d7a'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center}
+#map-select:hover{border-color:var(--accent)}
+#map-select option{background:var(--surface2);color:var(--text)}
+.top-spacer{flex:1}
+.top-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:4px;font-size:11px;cursor:pointer;letter-spacing:1px;transition:all .15s;white-space:nowrap}
+.top-btn:hover{border-color:var(--accent);color:var(--accent2)}
+.top-btn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+#coord-hint{font-size:10px;color:var(--text-dim);min-width:110px;text-align:right;white-space:nowrap}
+
+/* Main */
+#main{display:flex;height:calc(100vh - 46px)}
+#map-wrap{flex:1;position:relative;background:#0a0d12;overflow:hidden}
+#map-wrap.panning{cursor:grabbing}
+#map-canvas{position:absolute;top:0;left:0;cursor:crosshair}
+#loading-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:12px;opacity:0;transition:opacity .3s;z-index:10}
+#loading-overlay.on{opacity:1}
+#loading-overlay .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Sidebar */
+#sidebar{width:340px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+#sidebar::-webkit-scrollbar{width:4px}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sec{padding:12px 16px;border-bottom:1px solid var(--border)}
+.sec h3{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim);margin-bottom:10px}
+.mcard{background:var(--surface2);border-radius:6px;padding:10px 12px;margin-bottom:6px;border-left:3px solid transparent}
+.mcard.mt{border-left-color:var(--green)}
+.mcard.tg{border-left-color:var(--red)}
+.mcard .ml{font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px}
+.mcard.mt .ml{color:var(--green)}
+.mcard.tg .ml{color:var(--red)}
+.mcard .mv{font-size:17px;font-weight:700;letter-spacing:1px;color:#e8e8e8;font-family:"Consolas","Courier New",monospace}
+.mcard .ms{font-size:10px;color:var(--text-dim);margin-top:2px}
+.mcard .me{color:var(--text-dim);font-size:11px;font-style:italic}
+#rbox{background:linear-gradient(135deg,var(--surface2),#1c1f2b);border:1px solid var(--border);border-radius:6px;padding:12px}
+.rrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0}
+.rrow+.rrow{border-top:1px solid rgba(255,255,255,.04)}
+.rrow .rl{font-size:10px;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase}
+.rrow .rv{font-size:20px;font-weight:700;font-family:"Consolas","Courier New",monospace;color:var(--accent2)}
+.rrow .ru{font-size:10px;color:var(--text-dim);margin-left:3px}
+.rm{font-size:10px;color:var(--text-dim);margin-top:4px;text-align:center}
+
+/* Scope */
+#scope-wrap{display:flex;justify-content:center;align-items:center;background:#000;border-radius:50%;width:200px;height:200px;margin:0 auto 8px;overflow:hidden;border:2px solid #1a1a1a;box-shadow:inset 0 0 30px rgba(0,0,0,.8),0 0 0 3px #111}
+#scope-wrap canvas{width:100%;height:100%}
+.sc-row{display:flex;gap:8px;align-items:center;margin-bottom:5px}
+.sc-row label{font-size:10px;letter-spacing:1px;color:var(--text-dim);white-space:nowrap}
+.sc-row select{flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:4px 20px 4px 6px;border-radius:4px;font-size:11px;cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 7L1 3h8z' fill='%23636d7a'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center}
+.sc-info{text-align:center;margin-top:4px;font-size:11px;color:var(--accent2)}
+
+/* Buttons */
+.btn-row{display:flex;gap:8px}
+.btn{flex:1;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;text-align:center;transition:all .15s;background:var(--surface2);color:var(--text)}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.btn.pri:hover{background:var(--accent2)}
+.btn.warn{color:var(--red)}
+.btn.warn:hover{border-color:var(--red);background:rgba(231,76,60,.1)}
+.kb{font-size:9px;color:var(--text-dim);text-align:center;margin-top:6px}
+.kb kbd{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:"Consolas",monospace;font-size:9px;color:var(--text);margin:0 1px}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--accent);color:var(--accent2);padding:10px 24px;border-radius:4px;font-size:13px;letter-spacing:1px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:999}
+#toast.show{opacity:1}
+
+@media(max-width:800px){#main{flex-direction:column}#sidebar{width:100%;max-height:45vh;flex-shrink:1}#map-wrap{height:55vh}}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="logo">&#9670; SQUAD CALC</span>
+  <select id="map-select"></select>
+  <span class="top-spacer"></span>
+  <button class="top-btn active" id="btn-mode">&#9679; 迫击炮</button>
+  <span id="coord-hint">选择地图开始</span>
+</div>
+
+<div id="main">
+  <div id="map-wrap">
+    <canvas id="map-canvas"></canvas>
+    <div id="loading-overlay"><div class="spinner"></div><div style="font-size:11px;color:var(--text-dim)">加载地图...</div></div>
+  </div>
+
+  <div id="sidebar">
+    <!-- 标记 -->
+    <div class="sec">
+      <h3>&#9670; 标记位置</h3>
+      <div class="mcard mt" id="mortar-card">
+        <div class="ml">&#11044; 发射点</div>
+        <div class="me" id="mortar-empty">左键点击地图</div>
+        <div class="mv" id="mortar-coord" style="display:none"></div>
+        <div class="ms" id="mortar-sub"></div>
+      </div>
+      <div class="mcard tg" id="target-card">
+        <div class="ml">&#11044; 目标点</div>
+        <div class="me" id="target-empty">右键点击地图</div>
+        <div class="mv" id="target-coord" style="display:none"></div>
+        <div class="ms" id="target-sub"></div>
+      </div>
+    </div>
+
+    <!-- 计算结果 -->
+    <div class="sec">
+      <h3>&#9881; 射击参数</h3>
+      <div id="rbox">
+        <div class="me" id="result-empty" style="text-align:center;padding:14px 0">设置两点后自动计算</div>
+        <div id="result-content" style="display:none">
+          <div class="rrow"><span class="rl">距离</span><span><span class="rv" id="r-dist">--</span><span class="ru">米</span></span></div>
+          <div class="rrow"><span class="rl">方位角</span><span><span class="rv" id="r-bearing">--</span><span class="ru">°</span></span></div>
+          <div class="rrow"><span class="rl">迫击炮密位</span><span><span class="rv" id="r-mils">--</span><span class="ru">mil</span></span></div>
+          <div class="rrow"><span class="rl">测距密位</span><span><span class="rv" id="r-tmil">--</span><span class="ru">mil</span></span></div>
+          <div class="rm" id="r-hint"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 瞄具 -->
+    <div class="sec" id="scope-section">
+      <h3>&#9678; 瞄具视图</h3>
+      <div class="sc-row">
+        <label>武器</label>
+        <select id="scope-weapon"></select>
+      </div>
+      <div class="sc-row">
+        <label>归零</label>
+        <select id="scope-zero"></select>
+      </div>
+      <div id="scope-wrap"><canvas id="scope-canvas" width="400" height="400"></canvas></div>
+      <div class="sc-info" id="scope-info">设置两点后显示</div>
+    </div>
+
+    <!-- 操作 -->
+    <div class="sec">
+      <div class="btn-row">
+        <button class="btn warn" id="btn-clear">&#10005; 清除</button>
+        <button class="btn" id="btn-swap">&#8646; 交换</button>
+      </div>
+      <div class="kb"><kbd>滚轮</kbd>缩放 <kbd>拖拽</kbd>平移 <kbd>Ctrl+Z</kbd>撤销 <kbd>F</kbd>居中 <kbd>R</kbd>重置</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   MAPS
+   ============================================================ */
+const TILE_SIZE=256;
+const GH="https://raw.githubusercontent.com/Endebert/squadmc-maps/master/public/maps/";
+const LC="tiles/";
+
+const MAPS=[
+  {k:"albasrah",n:"Al Basrah",             dim:[4065,4065],lo:[-2032,-2032],bd:[3200,3200],gl:"ABCDEFGHIJKL"},
+  {k:"belaya",n:"Belaya",                  dim:[4033,4033],lo:[-2016,-2142],bd:[3904,3905],gl:"ABCDEFGHIJKLMN"},
+  {k:"chora",n:"Chora Valley",             dim:[8129,8129],lo:[-2464,-2664],bd:[4064,4064],gl:"ABCDEFGHIJKLMN"},
+  {k:"fallujah",n:"Fallujah",              dim:[2806,2806],lo:[-2040,-2040],bd:[3005,3005],gl:"ABCDEFGHIJK"},
+  {k:"foolsroad",n:"Fool's Road",          dim:[2806,2806],lo:[-1598,-1866],bd:[1774,1774],gl:"ABCDEF"},
+  {k:"forest",n:"Operation First Light",   dim:[2017,2017],lo:[-1100,-1100],bd:[1200,1200],gl:"ABCD"},
+  {k:"gorodok",n:"Gorodok",                dim:[4033,4033],lo:[-2016,-2016],bd:[4340,4340],gl:"ABCDEFGHIJKLMNO"},
+  {k:"jensens",n:"Jensen's Range",         dim:[1009,1009],lo:[-723,-544],  bd:[1511,1509],gl:"ABCDEF"},
+  {k:"kamdesh",n:"Kamdesh Highlands",      dim:[4033,4033],lo:[-2016,-2016],bd:[4032,4032],gl:"ABCDEFGHIJKLMN"},
+  {k:"kohat",n:"Kohat Toi",                dim:[4065,4065],lo:[-2016,-2016],bd:[4617,4617],gl:"ABCDEFGHIJKLMNOP"},
+  {k:"kokan",n:"Kokan",                    dim:[3049,3684],lo:[-1333,-1714],bd:[2496,2496],gl:"ABCDEFGHI"},
+  {k:"lashkar",n:"Lashkar Valley",         dim:[4336,4336],lo:[-2167,-2167],bd:[4334,4334],gl:"ABCDEFGHIJKLMNO"},
+  {k:"logarvalley",n:"Logar Valley",       dim:[2773,1891],lo:[-1386,-1260],bd:[1761,1761],gl:"ABCDEF"},
+  {k:"mestia",n:"Mestia",                  dim:[4081,4081],lo:[-2310,-1927],bd:[2400,2400],gl:"ABCDEFGH"},
+  {k:"mutaha",n:"Mutaha",                  dim:[4081,4081],lo:[-1785,-1785],bd:[2755,2755],gl:"ABCDEFGHIJ"},
+  {k:"narva",n:"Narva",                    dim:[4033,4033],lo:[-2016,-2016],bd:[2800,2800],gl:"ABCDEFGHIJ"},
+  {k:"skorpo",n:"Skorpo",                  dim:[7367,5081],lo:[-4300,-2413],bd:[7600,7600],gl:"ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
+  {k:"sumari",n:"Sumari Bala",             dim:[1985,1985],lo:[-992,-992],  bd:[1300,1300],gl:"ABCDE"},
+  {k:"tallil",n:"Tallil Outskirts",        dim:[4081,4081],lo:[-2040,-2040],bd:[4680,4680],gl:"ABCDEFGHIJKLMNOP"},
+  {k:"yehorivka",n:"Yehorivka",            dim:[8129,8129],lo:[-4064,-4064],bd:[5000,5000],gl:"ABCDEFGHIJKLMNOPQ"}
+];
+
+/* ============================================================
+   MORTAR
+   ============================================================ */
+const MTBL=[[50,1540],[100,1450],[200,1320],[300,1220],[400,1140],[500,1080],[600,1020],[700,960],[800,910],[900,870],[1000,830],[1100,795],[1200,765],[1250,750],[1300,735],[1400,710],[1500,685]];
+
+function mort(d){
+  if(d<=MTBL[0][0])return MTBL[0][1];
+  if(d>=MTBL[MTBL.length-1][0])return MTBL[MTBL.length-1][1];
+  for(let i=0;i<MTBL.length-1;i++)if(MTBL[i][0]<=d&&d<=MTBL[i+1][0]){const r=(d-MTBL[i][0])/(MTBL[i+1][0]-MTBL[i][0]);return Math.round(MTBL[i][1]+r*(MTBL[i+1][1]-MTBL[i][1]));}
+  return null;
+}
+
+/* ============================================================
+   WEAPONS & SCOPES
+   ============================================================ */
+const SCOPES=[
+  {id:"acog",  name:"ACOG M150 4x (US)",    zeroes:[100,200,300,400]},
+  {id:"pso1",  name:"PSO-1 4x (RUS)",       zeroes:[100,200,300,400]},
+  {id:"susat", name:"SUSAT 4x (BAF)",       zeroes:[100,200,300]},
+  {id:"c79",   name:"C79 3.4x (CAF)",       zeroes:[100,200,300,400]},
+  {id:"mildot",name:"Mil-Dot 6-10x (精确射手)", zeroes:[100,200,300,400,500,600,700,800,900,1000]},
+  {id:"reddot",name:"Red Dot 1x (CCO)",     zeroes:[100,200]},
+];
+let scopeType="acog", scopeZero=100;
+const BDC_MARKS={acog:[100,200,300,400,500,600,700,800],pso1:[100,200,300,400],susat:[100,200,300,400],c79:[200,400,600,800],mildot:[100,200,300,400,500,600,700,800,900,1000],reddot:[100,200]};
+
+const BDC_POS={
+  acog:[[100,0],[200,16],[300,40],[400,64],[500,88],[600,112],[700,136],[800,160]],
+  pso1:[[100,0],[200,40],[300,68],[400,96]],
+  susat:[[100,0],[200,25],[300,47],[400,69]],
+  c79:[[200,28],[400,56],[600,84],[800,112]],
+  mildot:[[100,0],[200,18],[300,36],[400,54],[500,72],[600,90],[700,108],[800,126],[900,144],[1000,162]],
+  reddot:[[100,0],[200,0]]
+};
+
+function getBDCMark(dist,type){
+  const marks=BDC_MARKS[type]||BDC_MARKS.acog;
+  let best=marks[0];
+  for(const m of marks){if(Math.abs(m-dist)<Math.abs(best-dist))best=m;}
+  return best;
+}
+
+function getBDCY(dist,type){
+  const list=BDC_POS[type]||BDC_POS.acog;
+  let best=list[0];
+  for(const e of list){if(Math.abs(e[0]-dist)<Math.abs(best[0]-dist))best=e;}
+  return best[1];
+}
+
+/* ============================================================
+   TILE CACHE
+   ============================================================ */
+const tcache=new Map(), tpend=new Map();
+function tileURL(k,z,x,y,loc){return (loc?LC:GH)+k+"/"+z+"_"+x+"_"+y+".jpg";}
+function loadTile(k,z,x,y){
+  const key=k+"/"+z+"/"+x+"/"+y;
+  if(tcache.has(key))return Promise.resolve(tcache.get(key));
+  if(tpend.has(key))return tpend.get(key);
+  const p=new Promise((resolve)=>{
+    const img=new Image();
+    img.onload=()=>{tcache.set(key,img);tpend.delete(key);resolve(img);};
+    img.onerror=()=>{
+      const ghKey=key+"_gh";
+      if(!tcache.has(ghKey)){const img2=new Image();img2.onload=()=>{tcache.set(key,img2);tpend.delete(key);resolve(img2);};img2.onerror=()=>{tpend.delete(key);resolve(null);};img2.src=tileURL(k,z,x,y,false);}
+      else{tpend.delete(key);resolve(tcache.get(ghKey));}
+    };
+    img.src=tileURL(k,z,x,y,true);
+  });
+  tpend.set(key,p);return p;
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let cmap=null, zoom=3, panX=0, panY=0;
+let mPos=null, tPos=null, placing="mortar";
+let ustack=[], dragging=false, dt=null, dlX=0, dlY=0;
+let mgX=0, mgY=0;
+
+/* ============================================================
+   COORDINATES
+   ============================================================ */
+function g2p(gx,gy){
+  const mw=cmap.dim[0],mh=cmap.dim[1],tp=TILE_SIZE*(1<<zoom);
+  return[((gx-cmap.lo[0])/mw)*tp,((cmap.lo[1]+mh-gy)/mh)*tp];
+}
+function p2g(px,py){
+  const mw=cmap.dim[0],mh=cmap.dim[1],tp=TILE_SIZE*(1<<zoom);
+  return[(px/tp)*mw+cmap.lo[0],cmap.lo[1]+mh-(py/tp)*mh];
+}
+function s2g(sx,sy){return p2g(sx-panX,sy-panY);}
+function g2s(gx,gy){const[px,py]=g2p(gx,gy);return[px+panX,py+panY];}
+
+function fmtGrid(gx,gy){
+  const gl=cmap.gl||"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const hw=cmap.bd[0]/2,hh=cmap.bd[1]/2,ox=-hw,oy=-hh;
+  const col=Math.floor((gx-ox)/300),row=Math.floor((gy-oy)/300);
+  const l=col>=0&&col<gl.length?gl[col]:"?";
+  const rx=((gx-ox)%300+300)%300,ry=((gy-oy)%300+300)%300;
+  const kp=(2-Math.floor(ry/100))*3+Math.floor(rx/100)+1;
+  const sx=Math.floor((rx%100)/33),sy=Math.floor((ry%100)/33),sub=(2-sy)*3+sx+1;
+  return{full:l+"-"+row+"-"+kp+"-"+sub,short:l+"-"+row+"-"+kp};
+}
+
+/* ============================================================
+   DOM
+   ============================================================ */
+const mwrap=document.getElementById("map-wrap");
+const canvas=document.getElementById("map-canvas");
+const ctx=canvas.getContext("2d");
+const loader=document.getElementById("loading-overlay");
+const scopeCvs=document.getElementById("scope-canvas");
+const scopeCtx=scopeCvs.getContext("2d");
+
+function rsz(){
+  const r=mwrap.getBoundingClientRect();
+  canvas.width=r.width;canvas.height=r.height;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(full){
+  rsz();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!cmap){ctx.fillStyle="#636d7a";ctx.font="14px 'Segoe UI',sans-serif";ctx.textAlign="center";ctx.fillText("请从上方选择地图",canvas.width/2,canvas.height/2);return;}
+
+  const n=1<<zoom;
+  let loaded=0,total=0;
+
+  for(let tx=0;tx<n;tx++){
+    for(let ty=0;ty<n;ty++){
+      const sx=panX+tx*TILE_SIZE,sy=panY+ty*TILE_SIZE;
+      if(sx+TILE_SIZE<-100||sx>canvas.width+100)continue;
+      if(sy+TILE_SIZE<-100||sy>canvas.height+100)continue;
+      total++;
+      const ck=cmap.k+"/"+zoom+"/"+tx+"/"+ty;
+      if(tcache.has(ck)){ctx.drawImage(tcache.get(ck),sx,sy,TILE_SIZE,TILE_SIZE);loaded++;}
+      else{ctx.fillStyle="#0d1117";ctx.fillRect(sx,sy,TILE_SIZE,TILE_SIZE);}
+    }
+  }
+
+  // Show loader if many tiles missing
+  if(total>0&&loaded<total*0.5&&full!==false){
+    if(!loader.classList.contains("on"))loader.classList.add("on");
+  }else{loader.classList.remove("on");}
+
+  drawGrid();
+  if(mPos&&tPos){
+    const[mx,my]=g2s(mPos.gx,mPos.gy);
+    const[tx,ty]=g2s(tPos.gx,tPos.gy);
+    ctx.strokeStyle="rgba(212,148,43,0.6)";ctx.lineWidth=2;ctx.setLineDash([8,4]);
+    ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(tx,ty);ctx.stroke();ctx.setLineDash([]);
+    const midX=(mx+tx)/2,midY=(my+ty)/2;
+    const d=Math.sqrt((tPos.gx-mPos.gx)**2+(tPos.gy-mPos.gy)**2);
+    ctx.fillStyle="rgba(0,0,0,0.8)";ctx.fillRect(midX-30,midY-15,60,24);
+    ctx.fillStyle="#e8b84b";ctx.font="bold 12px 'Consolas'";ctx.textAlign="center";ctx.fillText(Math.round(d)+"m",midX,midY+4);
+  }
+  if(mPos)drawMarker(mPos.gx,mPos.gy,"#2ecc71","M");
+  if(tPos)drawMarker(tPos.gx,tPos.gy,"#e74c3c","T");
+  updateCoordHint();
+}
+
+function drawGrid(){
+  const G=300,S=100;
+  const[gx0,gy0]=s2g(0,0);const[gx1,gy1]=s2g(canvas.width,canvas.height);
+  const mnX=Math.min(gx0,gx1),mxX=Math.max(gx0,gx1),mnY=Math.min(gy0,gy1),mxY=Math.max(gy0,gy1);
+
+  // 100m sub-grid (only when zoomed in)
+  if(zoom>=3){
+    ctx.strokeStyle="rgba(255,255,255,0.03)";ctx.lineWidth=0.5;ctx.beginPath();
+    const sX=Math.floor(mnX/S)*S,sY=Math.floor(mnY/S)*S;
+    const eX=Math.ceil(mxX/S)*S,eY=Math.ceil(mxY/S)*S;
+    if(eX-sX<5000){ // only draw if reasonable range
+      for(let gx=sX;gx<=eX;gx+=S){const[sx,sy0]=g2s(gx,mnY);const[sx2,sy1]=g2s(gx,mxY);ctx.moveTo(sx,sy0);ctx.lineTo(sx2,sy1);}
+      for(let gy=sY;gy<=eY;gy+=S){const[sx0,sy]=g2s(mnX,gy);const[sx1,sy2]=g2s(mxX,gy);ctx.moveTo(sx0,sy);ctx.lineTo(sx1,sy2);}
+      ctx.stroke();
+    }
+  }
+
+  // 300m major grid
+  ctx.strokeStyle="rgba(212,148,43,0.22)";ctx.lineWidth=1;ctx.beginPath();
+  const sgX=Math.floor(mnX/G)*G,sgY=Math.floor(mnY/G)*G;
+  const egX=Math.ceil(mxX/G)*G,egY=Math.ceil(mxY/G)*G;
+  if(egX-sgX<15000){
+    for(let gx=sgX;gx<=egX;gx+=G){const[sx,sy0]=g2s(gx,mnY);const[sx2,sy1]=g2s(gx,mxY);ctx.moveTo(sx,sy0);ctx.lineTo(sx2,sy1);}
+    for(let gy=sgY;gy<=egY;gy+=G){const[sx0,sy]=g2s(mnX,gy);const[sx1,sy2]=g2s(mxX,gy);ctx.moveTo(sx0,sy);ctx.lineTo(sx1,sy2);}
+    ctx.stroke();
+  }
+
+  // Labels (only when zoomed in enough)
+  if(zoom>=2){
+    const gl=cmap.gl||"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const hw=cmap.bd[0]/2,hh=cmap.bd[1]/2,ox=-hw,oy=-hh;
+    ctx.font="9px 'Segoe UI','PingFang SC',sans-serif";ctx.textAlign="center";ctx.fillStyle="rgba(212,148,43,0.45)";
+    for(let gx=sgX;gx<=egX;gx+=G){
+      const col=Math.floor((gx+G/2-ox)/G),label=col>=0&&col<gl.length?gl[col]:"";
+      for(let gy=sgY;gy<=egY;gy+=G){
+        const row=Math.floor((gy+G/2-oy)/G);
+        if(gx===sgX){const[sx,sy]=g2s(gx-15,gy+G/2);ctx.fillText(row+1,sx,sy+4);}
+        if(gy===sgY){const[sx,sy]=g2s(gx+G/2,gy+15);ctx.fillText(label,sx,sy+4);}
+        if(zoom>=3){ctx.fillStyle="rgba(255,255,255,0.06)";ctx.font="8px 'Segoe UI',sans-serif";
+          for(let ky=0;ky<3;ky++)for(let kx=0;kx<3;kx++){const[sx,sy]=g2s(gx+kx*100+50,gy+ky*100+50);ctx.fillText((2-ky)*3+kx+1,sx,sy+3);}}
+      }
+    }
+  }
+}
+
+function drawMarker(gx,gy,color,label){
+  const[sx,sy]=g2s(gx,gy);
+  ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(sx,sy,12,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle=color;ctx.beginPath();ctx.arc(sx,sy,5,0,Math.PI*2);ctx.fill();
+  ctx.shadowColor=color;ctx.shadowBlur=10;ctx.beginPath();ctx.arc(sx,sy,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  ctx.fillStyle="#fff";ctx.font="bold 11px 'Consolas'";ctx.textAlign="center";ctx.fillText(label,sx,sy-18);
+}
+
+function updateCoordHint(){
+  if(!cmap){document.getElementById("coord-hint").textContent="选择地图开始";return;}
+  const g=fmtGrid(mgX,mgY);
+  document.getElementById("coord-hint").textContent=g.short+" | X:"+mgX.toFixed(1)+" Y:"+mgY.toFixed(1);
+}
+
+/* ============================================================
+   UI UPDATE
+   ============================================================ */
+function updateUI(){
+  const mc=document.getElementById("mortar-coord"),me=document.getElementById("mortar-empty"),ms=document.getElementById("mortar-sub");
+  const tc=document.getElementById("target-coord"),te=document.getElementById("target-empty"),ts=document.getElementById("target-sub");
+  if(mPos){me.style.display="none";mc.style.display="";const f=fmtGrid(mPos.gx,mPos.gy);mc.textContent=f.short;ms.textContent="游戏坐标: X"+mPos.gx.toFixed(0)+" Y"+mPos.gy.toFixed(0);}
+  else{me.style.display="";mc.style.display="none";ms.textContent="";}
+  if(tPos){te.style.display="none";tc.style.display="";const f=fmtGrid(tPos.gx,tPos.gy);tc.textContent=f.short;ts.textContent="游戏坐标: X"+tPos.gx.toFixed(0)+" Y"+tPos.gy.toFixed(0);}
+  else{te.style.display="";tc.style.display="none";ts.textContent="";}
+
+  const re=document.getElementById("result-empty"),rc=document.getElementById("result-content");
+  if(mPos&&tPos){
+    re.style.display="none";rc.style.display="";
+    const dx=tPos.gx-mPos.gx,dy=tPos.gy-mPos.gy;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const bearing=(Math.atan2(dx,dy)*180/Math.PI+360)%360;
+    const mils=mort(dist);
+    const tmil=((1.7*1000)/dist).toFixed(1);
+    document.getElementById("r-dist").textContent=Math.round(dist);
+    document.getElementById("r-bearing").textContent=bearing.toFixed(1);
+    document.getElementById("r-mils").textContent=mils!==null?mils:"--";
+    document.getElementById("r-tmil").textContent=tmil;
+    const hint=dist<50?"目标过近":dist>1500?"超出迫击炮最大射程(1500m)":dist>1250?"接近最大射程":"";
+    document.getElementById("r-hint").textContent=hint;
+  }else{re.style.display="";rc.style.display="none";}
+  updateScopeDisplay();
+}
+
+/* ============================================================
+   SCOPE DISPLAY
+   ============================================================ */
+function updateScopeDisplay(){
+  const w=scopeCvs.width,h=scopeCvs.height,cx=w/2,cy=h/2;
+  scopeCtx.clearRect(0,0,w,h);
+  scopeCtx.fillStyle="#000";scopeCtx.fillRect(0,0,w,h);
+  scopeCtx.save();scopeCtx.beginPath();scopeCtx.arc(cx,cy,185,0,Math.PI*2);scopeCtx.clip();
+  scopeCtx.fillStyle="#0a180a";scopeCtx.fillRect(0,0,w,h);
+
+  if(scopeType==="acog")drawACOG(cx,cy);
+  else if(scopeType==="pso1")drawPSO1(cx,cy);
+  else if(scopeType==="susat")drawSUSAT(cx,cy);
+  else if(scopeType==="c79")drawC79(cx,cy);
+  else if(scopeType==="mildot")drawMilDot(cx,cy);
+  else if(scopeType==="reddot")drawRedDot(cx,cy);
+
+  scopeCtx.restore();
+  scopeCtx.strokeStyle="#1a1a1a";scopeCtx.lineWidth=10;
+  scopeCtx.beginPath();scopeCtx.arc(cx,cy,190,0,Math.PI*2);scopeCtx.stroke();
+  scopeCtx.strokeStyle="#222";scopeCtx.lineWidth=2;
+  scopeCtx.beginPath();scopeCtx.arc(cx,cy,195,0,Math.PI*2);scopeCtx.stroke();
+
+  // Aim point based on measured distance
+  if(mPos&&tPos){
+    const dx=tPos.gx-mPos.gx,dy=tPos.gy-mPos.gy;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const py=Math.min(cy+getBDCY(dist,scopeType),cy+180);
+    const px=cx;
+
+    // Glow
+    const grad=scopeCtx.createRadialGradient(px,py,0,px,py,14);
+    grad.addColorStop(0,"rgba(255,40,40,0.95)");
+    grad.addColorStop(0.4,"rgba(255,40,40,0.4)");
+    grad.addColorStop(1,"rgba(255,40,40,0)");
+    scopeCtx.fillStyle=grad;
+    scopeCtx.beginPath();scopeCtx.arc(px,py,14,0,Math.PI*2);scopeCtx.fill();
+    scopeCtx.fillStyle="#ff2020";
+    scopeCtx.beginPath();scopeCtx.arc(px,py,4,0,Math.PI*2);scopeCtx.fill();
+    scopeCtx.strokeStyle="#fff";scopeCtx.lineWidth=1;
+    scopeCtx.beginPath();scopeCtx.arc(px,py,2,0,Math.PI*2);scopeCtx.stroke();
+
+    // Info
+    document.getElementById("scope-info").textContent="距离 "+Math.round(dist)+"m → BDC "+getBDCMark(dist,scopeType)+"m | 归零 "+scopeZero+"m";
+  }else{
+    document.getElementById("scope-info").textContent="设置两点后显示瞄点";
+  }
+}
+
+function drawACOG(cx,cy){
+  const s=scopeCtx;
+  // Crosshair
+  s.strokeStyle="rgba(255,30,30,0.8)";s.lineWidth=1.5;
+  s.beginPath();s.moveTo(cx,cy-110);s.lineTo(cx,cy+130);s.stroke();
+  s.beginPath();s.moveTo(cx-80,cy);s.lineTo(cx+80,cy);s.stroke();
+  // Chevron
+  s.fillStyle="rgba(255,30,30,0.9)";
+  s.beginPath();s.moveTo(cx,cy-14);s.lineTo(cx+14,cy+5);s.lineTo(cx-14,cy+5);s.closePath();s.fill();
+  // BDC marks
+  const marks=[200,300,400,500,600,700,800];
+  for(let i=0;i<marks.length;i++){
+    const y=cy+16+i*24;
+    s.strokeStyle="rgba(255,30,30,0.55)";s.lineWidth=1;
+    s.beginPath();s.moveTo(cx-22,y);s.lineTo(cx+22,y);s.stroke();
+    s.fillStyle="rgba(255,30,30,0.45)";s.font="9px 'Segoe UI',sans-serif";s.textAlign="left";
+    s.fillText(marks[i],cx+26,y+4);
+  }
+  s.fillStyle="rgba(255,30,30,0.35)";s.font="8px 'Segoe UI',sans-serif";s.textAlign="center";
+  s.fillText("ACOG 4x32 BDC",cx,cy-125);
+}
+
+function drawPSO1(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(255,50,50,0.8)";s.lineWidth=1.2;
+  s.beginPath();s.moveTo(cx,cy-120);s.lineTo(cx,cy+120);s.stroke();
+  s.beginPath();s.moveTo(cx-120,cy);s.lineTo(cx+120,cy);s.stroke();
+  // Main chevron
+  s.fillStyle="rgba(255,50,50,0.9)";
+  s.beginPath();s.moveTo(cx,cy-11);s.lineTo(cx+11,cy+4);s.lineTo(cx-11,cy+4);s.closePath();s.fill();
+  // BDC chevrons
+  for(let i=1;i<=3;i++){
+    const y=cy+12+i*28;
+    s.fillStyle="rgba(255,50,50,0.45)";
+    s.beginPath();s.moveTo(cx,y-7);s.lineTo(cx+9,y+2);s.lineTo(cx-9,y+2);s.closePath();s.fill();
+  }
+  // Rangefinder
+  s.strokeStyle="rgba(255,50,50,0.4)";s.lineWidth=0.7;
+  s.beginPath();s.moveTo(cx-120,cy+50);s.lineTo(cx-50,cy+5);s.lineTo(cx-15,cy-25);
+  for(let i=0;i<6;i++)s.lineTo(cx-15+i*12,cy-25-i*5);s.stroke();
+  s.fillStyle="rgba(255,50,50,0.4)";s.font="8px 'Segoe UI',sans-serif";s.textAlign="center";
+  s.fillText("PSO-1 4x24",cx,cy-135);
+}
+
+function drawSUSAT(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(255,180,0,0.8)";s.lineWidth=1.5;
+  // Post
+  s.fillStyle="rgba(255,180,0,0.85)";
+  s.beginPath();s.moveTo(cx-2,cy-50);s.lineTo(cx+2,cy-50);s.lineTo(cx+5,cy+18);s.lineTo(cx-5,cy+18);s.closePath();s.fill();
+  s.beginPath();s.moveTo(cx,cy-56);s.lineTo(cx+3,cy-46);s.lineTo(cx-3,cy-46);s.closePath();s.fill();
+  s.beginPath();s.moveTo(cx-45,cy);s.lineTo(cx+45,cy);s.stroke();
+  // Range marks
+  for(let i=0;i<3;i++){const y=cy+25+i*22;s.beginPath();s.moveTo(cx-14,y);s.lineTo(cx+14,y);s.stroke();}
+  s.fillStyle="rgba(255,180,0,0.4)";s.font="8px 'Segoe UI',sans-serif";s.textAlign="center";
+  s.fillText("SUSAT L9A1 4x",cx,cy-70);
+}
+
+function drawC79(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(0,200,50,0.8)";s.lineWidth=1.2;
+  s.beginPath();s.moveTo(cx,cy-90);s.lineTo(cx,cy+90);s.stroke();
+  s.beginPath();s.moveTo(cx-90,cy);s.lineTo(cx+90,cy);s.stroke();
+  s.beginPath();s.arc(cx,cy,7,0,Math.PI*2);s.stroke();
+  s.fillStyle="rgba(0,200,50,0.25)";s.beginPath();s.arc(cx,cy,3,0,Math.PI*2);s.fill();
+  for(let i=1;i<=4;i++){const y=cy+i*28;s.beginPath();s.moveTo(cx-10,y);s.lineTo(cx+10,y);s.stroke();}
+  s.fillStyle="rgba(0,200,50,0.45)";s.font="8px 'Segoe UI',sans-serif";s.textAlign="center";
+  s.fillText("C79 3.4x28",cx,cy-105);
+}
+
+function drawMilDot(cx,cy){
+  const s=scopeCtx;
+  s.strokeStyle="rgba(0,180,255,0.7)";s.lineWidth=0.7;
+  s.beginPath();s.moveTo(cx,cy-130);s.lineTo(cx,cy+130);s.stroke();
+  s.beginPath();s.moveTo(cx-130,cy);s.lineTo(cx+130,cy);s.stroke();
+  for(let i=-7;i<=7;i++)for(let j=-7;j<=7;j++){
+    if(i===0&&j===0)continue;
+    const dx=cx+i*18,dy=cy+j*18;
+    s.fillStyle="rgba(0,180,255,0.65)";
+    s.beginPath();s.arc(dx,dy,(i%5===0||j%5===0)?2.5:1.3,0,Math.PI*2);s.fill();
+  }
+  s.fillStyle="#0a180a";s.fillRect(cx-4,cy-4,8,8);
+  s.fillStyle="rgba(0,180,255,0.5)";s.font="7px 'Segoe UI',sans-serif";s.textAlign="center";
+  s.fillText("MIL-DOT",cx,cy-138);
+}
+
+function drawRedDot(cx,cy){
+  const s=scopeCtx;
+  const grad=s.createRadialGradient(cx,cy,0,cx,cy,7);
+  grad.addColorStop(0,"rgba(255,25,25,1)");grad.addColorStop(0.3,"rgba(255,25,25,0.6)");grad.addColorStop(1,"rgba(255,25,25,0)");
+  s.fillStyle=grad;s.beginPath();s.arc(cx,cy,7,0,Math.PI*2);s.fill();
+  s.fillStyle="#ff0000";s.beginPath();s.arc(cx,cy,2.2,0,Math.PI*2);s.fill();
+  s.fillStyle="rgba(255,30,30,0.4)";s.font="8px 'Segoe UI',sans-serif";s.textAlign="center";
+  s.fillText("CCO 1x",cx,cy-18);
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+function evPos(e){const r=canvas.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];}
+
+canvas.addEventListener("mousedown",(e)=>{
+  if(!cmap)return;e.preventDefault();
+  const[sx,sy]=evPos(e);
+  if(e.button===0&&!e.ctrlKey&&!e.shiftKey){
+    // Check marker drag
+    if(mPos){const[mx,my]=g2s(mPos.gx,mPos.gy);if(Math.hypot(sx-mx,sy-my)<16){dragging=true;dt="mortar";dlX=sx;dlY=sy;canvas.style.cursor="grabbing";return;}}
+    if(tPos){const[tx,ty]=g2s(tPos.gx,tPos.gy);if(Math.hypot(sx-tx,sy-ty)<16){dragging=true;dt="target";dlX=sx;dlY=sy;canvas.style.cursor="grabbing";return;}}
+  }
+  if(e.button===1||(e.button===0&&e.ctrlKey)){dragging=true;dt="pan";dlX=sx;dlY=sy;mwrap.classList.add("panning");return;}
+
+  const[gx,gy]=s2g(sx,sy);
+  ustack.push({m:mPos?{...mPos}:null,t:tPos?{...tPos}:null});
+  if(ustack.length>50)ustack.shift();
+  if(e.button===0){if(e.shiftKey||placing==="target"){tPos={gx,gy};toast("目标已设置");}else{mPos={gx,gy};toast("迫击炮已设置");}}
+  else if(e.button===2){tPos={gx,gy};toast("目标已设置");}
+  updateUI();requestAnimationFrame(render);
+});
+canvas.addEventListener("contextmenu",(e)=>e.preventDefault());
+
+canvas.addEventListener("mousemove",(e)=>{
+  const[sx,sy]=evPos(e);
+  [mgX,mgY]=s2g(sx,sy);
+  if(dragging&&dt){
+    const dx=sx-dlX,dy=sy-dlY;
+    if(dt==="pan"){panX+=dx;panY+=dy;}
+    else if(dt==="mortar"&&mPos){const scl=cmap.dim[0]/(TILE_SIZE*(1<<zoom));mPos.gx+=dx*scl;mPos.gy-=dy*scl;}
+    else if(dt==="target"&&tPos){const scl=cmap.dim[0]/(TILE_SIZE*(1<<zoom));tPos.gx+=dx*scl;tPos.gy-=dy*scl;}
+    dlX=sx;dlY=sy;updateUI();requestAnimationFrame(render);return;
+  }
+  if(mPos){const[mx,my]=g2s(mPos.gx,mPos.gy);if(Math.hypot(sx-mx,sy-my)<16){canvas.style.cursor="grab";return;}}
+  if(tPos){const[tx,ty]=g2s(tPos.gx,tPos.gy);if(Math.hypot(sx-tx,sy-ty)<16){canvas.style.cursor="grab";return;}}
+  canvas.style.cursor="crosshair";
+});
+window.addEventListener("mouseup",()=>{if(dragging&&dt&&dt!=="pan"){updateUI();requestAnimationFrame(render);}dragging=false;dt=null;mwrap.classList.remove("panning");canvas.style.cursor="crosshair";});
+
+canvas.addEventListener("wheel",(e)=>{
+  if(!cmap)return;e.preventDefault();
+  const[sx,sy]=evPos(e);
+  const[gxBefore,gyBefore]=s2g(sx,sy);
+  if(e.deltaY<0&&zoom<5)zoom++;else if(e.deltaY>0&&zoom>1)zoom--;
+  const[pxA,pyA]=g2p(gxBefore,gyBefore);
+  panX=sx-pxA;panY=sy-pyA;
+  ensureTiles(zoom);requestAnimationFrame(render);updateUI();
+},{passive:false});
+
+// Touch
+canvas.addEventListener("touchstart",(e)=>{
+  if(e.touches.length===1){const[sx,sy]=evPos(e.touches[0]);dragging=true;dt="pan";dlX=sx;dlY=sy;}
+},{passive:false});
+canvas.addEventListener("touchmove",(e)=>{e.preventDefault();if(!dragging)return;const[sx,sy]=evPos(e.touches[0]);const dx=sx-dlX,dy=sy-dlY;panX+=dx;panY+=dy;dlX=sx;dlY=sy;requestAnimationFrame(render);},{passive:false});
+canvas.addEventListener("touchend",()=>{dragging=false;dt=null;});
+
+// Keyboard
+window.addEventListener("keydown",(e)=>{
+  if(e.ctrlKey&&e.key==="z"){e.preventDefault();if(ustack.length>0){const p=ustack.pop();mPos=p.m;tPos=p.t;updateUI();requestAnimationFrame(render);toast("已撤销");}}
+  if(e.key==="f"||e.key==="F"){
+    if(mPos&&tPos){const cx=(mPos.gx+tPos.gx)/2,cy=(mPos.gy+tPos.gy)/2;const[px,py]=g2p(cx,cy);panX=canvas.width/2-px;panY=canvas.height/2-py;}
+    else if(mPos){const[px,py]=g2p(mPos.gx,mPos.gy);panX=canvas.width/2-px;panY=canvas.height/2-py;}
+    requestAnimationFrame(render);toast("居中");
+  }
+  if(e.key==="r"||e.key==="R"){zoom=3;panX=0;panY=0;requestAnimationFrame(render);updateUI();toast("已重置");}
+  if(e.key==="m"||e.key==="M"){placing="mortar";document.getElementById("btn-mode").textContent="● 迫击炮";document.getElementById("btn-mode").classList.add("active");}
+  if(e.key==="t"||e.key==="T"){placing="target";document.getElementById("btn-mode").textContent="◇ 目标";document.getElementById("btn-mode").classList.remove("active");}
+});
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+document.getElementById("btn-mode").addEventListener("click",()=>{
+  placing=placing==="mortar"?"target":"mortar";
+  const b=document.getElementById("btn-mode");
+  b.textContent=placing==="mortar"?"● 迫击炮":"◇ 目标";
+  if(placing==="mortar")b.classList.add("active");else b.classList.remove("active");
+});
+document.getElementById("btn-clear").addEventListener("click",()=>{
+  ustack.push({m:mPos?{...mPos}:null,t:tPos?{...tPos}:null});if(ustack.length>50)ustack.shift();
+  mPos=null;tPos=null;updateUI();requestAnimationFrame(render);toast("已清除");
+});
+document.getElementById("btn-swap").addEventListener("click",()=>{
+  [mPos,tPos]=[tPos,mPos];updateUI();requestAnimationFrame(render);toast("已交换");
+});
+
+document.getElementById("map-select").addEventListener("change",()=>{
+  cmap=MAPS.find(m=>m.k===document.getElementById("map-select").value);
+  tcache.clear();tpend.clear();mPos=null;tPos=null;ustack=[];zoom=3;panX=0;panY=0;
+  updateUI();loadPreload();toast("地图: "+cmap.n);
+});
+
+document.getElementById("scope-weapon").addEventListener("change",()=>{
+  scopeType=document.getElementById("scope-weapon").value;
+  popZeroes();updateScopeDisplay();
+});
+document.getElementById("scope-zero").addEventListener("change",()=>{
+  scopeZero=parseInt(document.getElementById("scope-zero").value);
+  updateScopeDisplay();
+});
+
+/* ============================================================
+   MAP LOADING
+   ============================================================ */
+// Preload tiles in batches, don't trigger re-render for each
+let loadBatch=[],batchTimer=null;
+
+function batchLoadTiles(map,z,cb){
+  const n=1<<z;loadBatch=[];
+  for(let tx=0;tx<n;tx++)for(let ty=0;ty<n;ty++)loadBatch.push(loadTile(map,z,tx,ty));
+  Promise.allSettled(loadBatch).then(()=>{if(cb)cb();});
+}
+
+function loadPreload(){
+  if(!cmap)return;
+  loader.classList.add("on");
+
+  // Load level 0 first for instant preview
+  loadTile(cmap.k,0,0,0).then(()=>{
+    zoom=0;rsz();const tp=TILE_SIZE;panX=canvas.width/2-tp/2;panY=canvas.height/2-tp/2;
+    requestAnimationFrame(render);
+
+    // Then load zoom 3 (most used)
+    batchLoadTiles(cmap.k,3,()=>{
+      loader.classList.remove("on");
+      zoom=3;rsz();const tp=TILE_SIZE*8;panX=canvas.width/2-tp/2;panY=canvas.height/2-tp/2;
+      requestAnimationFrame(render);updateUI();
+    });
+  });
+}
+
+// Background load missing tiles when zoom changes
+function ensureTiles(z){
+  if(!cmap)return;
+  const n=1<<z;
+  for(let tx=0;tx<n;tx++)for(let ty=0;ty<n;ty++){
+    const ck=cmap.k+"/"+z+"/"+tx+"/"+ty;
+    if(!tcache.has(ck)&&!tpend.has(ck))loadTile(cmap.k,z,tx,ty);
+  }
+}
+
+/* ============================================================
+   TOAST & INIT
+   ============================================================ */
+let toastTimer;
+function toast(msg){clearTimeout(toastTimer);const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");toastTimer=setTimeout(()=>t.classList.remove("show"),1500);}
+
+function popZeroes(){
+  const sel=document.getElementById("scope-zero");sel.innerHTML="";
+  const scope=SCOPES.find(s=>s.id===scopeType);
+  if(!scope)return;
+  scope.zeroes.forEach(z=>{const o=document.createElement("option");o.value=z;o.textContent=z+"m";if(z===100)o.selected=true;sel.appendChild(o);});
+  scopeZero=100;
+}
+
+function init(){
+  // Populate map select
+  MAPS.forEach(m=>{const o=document.createElement("option");o.value=m.k;o.textContent=m.n+" ("+m.bd[0]+"m×"+m.bd[1]+"m)";document.getElementById("map-select").appendChild(o);});
+  // Populate scope select
+  SCOPES.forEach(s=>{const o=document.createElement("option");o.value=s.id;o.textContent=s.name;document.getElementById("scope-weapon").appendChild(o);});
+
+  document.getElementById("map-select").value="albasrah";
+  cmap=MAPS.find(m=>m.k==="albasrah");
+  popZeroes();
+  rsz();updateUI();updateScopeDisplay();loadPreload();
+  document.getElementById("btn-mode").classList.add("active");
+}
+
+window.addEventListener("resize",()=>{rsz();requestAnimationFrame(render);});
+new ResizeObserver(()=>{rsz();requestAnimationFrame(render);}).observe(mwrap);
+init();
+
+</script>
+</body>
+</html>

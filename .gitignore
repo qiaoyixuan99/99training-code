@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+*.egg
+.venv/
+venv/
+
+# Databases (large files)
+*.db
+
+# Email data (sensitive)
+maildir/
+
+# Logs
+*.log
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# Claude internal
+.claude/
+
+# External cloned repos (has its own .git)
+andrej-karpathy-skills/
+
+# Environment & secrets
+.env
+.env.local
+*.private.config.json

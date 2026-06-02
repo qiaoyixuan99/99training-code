@@ -1,0 +1,144 @@
+<!--
+  Daily Forge — 思维锻造系统 · 微信小程序版
+  支持黑夜/白天双模式手动切换
+-->
+
+<view class="app {{theme === 'light' ? 'light-theme' : ''}}">
+
+  <!-- ═══ 自定义导航栏 ═══ -->
+  <view class="nav-bar">
+    <view class="nav-bar-left">
+      <text class="nav-date">{{dateDisplay}}</text>
+      <text class="nav-title">Daily <text class="gold">Forge</text></text>
+    </view>
+    <view class="nav-bar-right">
+      <!-- 主题切换按钮 -->
+      <view class="theme-toggle" bindtap="cycleTheme">
+        <text>{{theme === 'light' ? '☀️' : '🌙'}}</text>
+        <text>{{theme === 'light' ? '白天' : '黑夜'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ═══ 统计卡片 ═══ -->
+  <view class="stats-row">
+    <view class="stat-card streak">
+      <text class="stat-value">{{streak}}</text>
+      <text class="stat-label">连续天数</text>
+    </view>
+    <view class="stat-card xp">
+      <text class="stat-value">{{xp}}</text>
+      <text class="stat-label">总 XP</text>
+    </view>
+    <view class="stat-card level">
+      <text class="stat-value">Lv.{{rank.level}}</text>
+      <text class="stat-label">{{rank.name}}</text>
+    </view>
+  </view>
+
+  <!-- ═══ XP 进度条 ═══ -->
+  <view class="xp-section">
+    <view class="xp-header">
+      <text>{{xpInLevel}} / {{xpNeeded}} XP</text>
+      <text>下一级: {{nextRankName}}</text>
+    </view>
+    <view class="xp-bar-outer">
+      <view class="xp-bar-inner" style="width: {{xpPercent}}%;"></view>
+    </view>
+  </view>
+
+  <!-- ═══ 身份横幅 ═══ -->
+  <view class="identity-banner">
+    <text class="identity-title">🎯 当前身份</text>
+    <text class="identity-name">{{rank.icon}} {{rank.name}}</text>
+    <text class="identity-sub">距离 {{nextRankName}} 还需 {{xpRemain}} XP</text>
+  </view>
+
+  <!-- ═══ 今日视图 ═══ -->
+  <view wx:if="{{viewMode === 'today'}}">
+    <text class="section-title">📋 今日锻造任务</text>
+
+    <view wx:for="{{tasks}}" wx:key="id" class="task-card {{item.completed ? 'completed' : ''}}">
+      <!-- 时段徽章 -->
+      <text class="task-time-badge badge-{{item.timeClass}}">{{item.timeLabel}}</text>
+      <text class="task-title">{{item.title}}</text>
+
+      <!-- 任务描述列表 -->
+      <view class="task-desc">
+        <text wx:for="{{item.descs}}" wx:key="*this" wx:for-item="desc">• {{desc}}\n</text>
+      </view>
+
+      <text class="task-xp">⚡ 基础 {{item.baseXP}} XP{{item.bonus > 0 ? ' + 🎲 暴击 +' + item.bonus + ' XP' : ''}}</text>
+
+      <!-- 已完成：展开反思区 -->
+      <view wx:if="{{item.completed}}" class="reflection-area">
+        <text class="reflection-prompt">💭 {{item.prompt}}</text>
+        <textarea
+          class="reflection-input"
+          placeholder="写下你的思考..."
+          value="{{item.reflect}}"
+          data-id="{{item.id}}"
+          bindinput="onReflectInput"
+        />
+        <view class="reflection-actions">
+          <button class="btn btn-save" data-id="{{item.id}}" bindtap="saveReflection">💾 保存反思</button>
+          <button class="btn btn-undo" data-id="{{item.id}}" bindtap="undoTask">↩ 撤销</button>
+        </view>
+      </view>
+
+      <!-- 未完成：打卡按钮 -->
+      <button wx:else class="btn btn-complete" data-id="{{item.id}}" bindtap="completeTask">✅ 完成打卡</button>
+    </view>
+
+    <!-- 本周概览 -->
+    <text class="section-title section-gap">📅 本周</text>
+    <view class="week-grid">
+      <view
+        wx:for="{{weekDays}}"
+        wx:key="date"
+        class="week-day {{item.isToday ? 'today' : ''}} {{item.allDone ? 'done' : ''}}"
+      >
+        <text class="week-day-name">{{item.dayName}}</text>
+        <text class="week-day-date">{{item.displayDate}}</text>
+        <view class="dot {{item.dotClass}}"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ═══ 记录视图 ═══ -->
+  <view wx:if="{{viewMode === 'history'}}" class="history-view">
+    <text class="section-title">📜 近期记录</text>
+
+    <view wx:if="{{historyList.length === 0}}" class="history-empty">
+      <text>还没有记录，开始今天的第一条吧 🚀</text>
+    </view>
+
+    <view wx:for="{{historyList}}" wx:key="date" class="history-item">
+      <text class="history-date">📅 {{item.dateStr}} +{{item.dayXP}} XP</text>
+      <text class="history-summary">💬 {{item.reflection}}</text>
+      <view class="history-tags">
+        <text wx:if="{{item.allDone}}" class="history-tag tag-all-done">✅ 全部完成</text>
+        <text wx:if="{{item.engDone}}" class="history-tag tag-eng">🇬🇧 英语 ✓</text>
+        <text wx:if="{{item.agentDone}}" class="history-tag tag-agent">🤖 Agent ✓</text>
+        <text wx:if="{{!item.engDone && !item.agentDone}}" class="history-tag tag-fail">⚠ 未完成</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ═══ 底部导航 ═══ -->
+  <view class="nav">
+    <button class="nav-btn {{viewMode === 'today' ? 'active' : ''}}" bindtap="switchToToday">⚒️ 今日</button>
+    <button class="nav-btn {{viewMode === 'history' ? 'active' : ''}}" bindtap="switchToHistory">📜 记录</button>
+  </view>
+
+  <!-- ═══ 重置按钮 ═══ -->
+  <view class="reset-area">
+    <button class="btn-reset" bindtap="resetAll">重置全部数据</button>
+  </view>
+
+</view>
+
+<!-- Toast 提示层 -->
+<view wx:if="{{toast.visible}}" class="toast {{toast.type}}">
+  <text>{{toast.msg}}</text>
+</view>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>邮件对话追踪 v3 - 树状图</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- Sidebar: thread list -->
+<aside id="sidebar">
+  <div id="sidebar-header">
+    <h1>邮件树状图 v3</h1>
+    <div id="sidebar-stats"></div>
+  </div>
+  <div id="sidebar-toolbar">
+    <button id="btn-refresh" class="btn-primary">更新数据</button>
+    <button id="btn-import-sample" class="btn-secondary">导入示例</button>
+    <button id="btn-settings" class="btn-secondary" title="IMAP设置">设置</button>
+  </div>
+  <div id="sidebar-search">
+    <input type="text" id="search-input" placeholder="搜索邮件主题/发件人…" autocomplete="off">
+    <div id="search-results" class="hidden"></div>
+  </div>
+  <div id="sidebar-filter">
+    <div class="filter-row">
+      <span class="filter-label">时间范围</span>
+      <button class="btn-preset active" data-range="this-month">本月</button>
+      <button class="btn-preset" data-range="3months">近3月</button>
+      <button class="btn-preset" data-range="this-year">今年</button>
+      <button class="btn-preset" data-range="all">全部</button>
+    </div>
+    <div class="filter-row filter-custom">
+      <input type="date" id="date-from" class="date-input" title="开始日期">
+      <span class="filter-sep">至</span>
+      <input type="date" id="date-to" class="date-input" title="结束日期">
+      <button id="btn-apply-filter" class="btn-secondary btn-sm">筛选</button>
+    </div>
+  </div>
+  <div id="thread-list"></div>
+</aside>
+
+<!-- Main: tree view -->
+<main id="main-panel">
+  <div id="tree-area">
+    <div id="tree-header"></div>
+    <div id="tree-canvas-wrap">
+      <svg id="tree-lines"></svg>
+      <div id="tree-nodes"></div>
+    </div>
+    <div class="placeholder" id="placeholder">
+      <div class="placeholder-icon">🌳</div>
+      <p>选择左侧邮件线程查看树状对话历史</p>
+    </div>
+  </div>
+</main>
+
+<!-- Detail panel: slides in from right -->
+<div id="detail-overlay" class="hidden"></div>
+<aside id="detail-panel" class="hidden">
+  <div id="detail-header">
+    <h3 id="detail-subject"></h3>
+    <button id="btn-detail-close" class="btn-close">&times;</button>
+  </div>
+  <div id="detail-body"></div>
+</aside>
+
+<!-- Settings modal -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>IMAP 邮箱设置</h2>
+      <button class="modal-close" id="btn-modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">使用邮箱授权码登录（非邮箱密码），授权码在邮箱设置中生成。</p>
+      <label>邮箱地址</label>
+      <input type="email" id="cfg-email" placeholder="your@example.com" autocomplete="email">
+      <label>授权码</label>
+      <input type="password" id="cfg-auth-code" placeholder="输入邮箱授权码（留空则沿用已保存的）" autocomplete="off">
+      <details style="margin-bottom:12px">
+        <summary style="cursor:pointer;font-size:12px;color:#666">高级：手动指定服务器</summary>
+        <label style="margin-top:8px">IMAP 服务器</label>
+        <input type="text" id="cfg-server" placeholder="留空自动识别">
+        <label>端口</label>
+        <input type="number" id="cfg-port" placeholder="993" value="993">
+      </details>
+
+      <!-- Database info -->
+      <div id="dl-db-info" style="font-size:12px;color:#999;margin-bottom:12px;display:none"></div>
+
+      <!-- Selective download options -->
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+          选择下载范围
+          <label style="font-size:11px;font-weight:400;cursor:pointer;color:var(--primary)">
+            <input type="checkbox" id="dl-toggle-all" checked style="vertical-align:middle;margin-right:3px">全选
+          </label>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <label class="dl-label">
+            <input type="checkbox" class="dl-checkbox" value="this-month" checked> 本月
+          </label>
+          <label class="dl-label">
+            <input type="checkbox" class="dl-checkbox" value="3months" checked> 近3月
+          </label>
+          <label class="dl-label">
+            <input type="checkbox" class="dl-checkbox" value="this-year" checked> 今年
+          </label>
+          <label class="dl-label">
+            <input type="checkbox" class="dl-checkbox" value="all"> 全部历史
+          </label>
+        </div>
+        <div style="font-size:11px;color:#999;margin-top:6px">已存在的邮件将自动跳过，不会重复下载</div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-primary" id="btn-save-config">保存配置</button>
+        <button class="btn-secondary" id="btn-test-fetch">测试连接</button>
+        <button class="btn-primary" id="btn-fetch-save" style="width:100%">保存并获取邮件到本地</button>
+      </div>
+      <div id="cfg-status" style="margin-top:8px;font-size:12px;color:#666;max-height:200px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
