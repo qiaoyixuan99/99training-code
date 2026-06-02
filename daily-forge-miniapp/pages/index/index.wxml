@@ -21,7 +21,7 @@
   </view>
 
   <!-- ═══ 统计卡片 ═══ -->
-  <view class="stats-row">
+  <view class="stats-row {{statsAnim}}">
     <view class="stat-card streak">
       <text class="stat-value">{{streak}}</text>
       <text class="stat-label">连续天数</text>
@@ -37,7 +37,7 @@
   </view>
 
   <!-- ═══ XP 进度条 ═══ -->
-  <view class="xp-section">
+  <view class="xp-section {{xpAnim}}">
     <view class="xp-header">
       <text>{{xpInLevel}} / {{xpNeeded}} XP</text>
       <text>下一级: {{nextRankName}}</text>
@@ -48,7 +48,7 @@
   </view>
 
   <!-- ═══ 身份横幅 ═══ -->
-  <view class="identity-banner">
+  <view class="identity-banner {{identityAnim}}">
     <text class="identity-title">🎯 当前身份</text>
     <text class="identity-name">{{rank.icon}} {{rank.name}}</text>
     <text class="identity-sub">距离 {{nextRankName}} 还需 {{xpRemain}} XP</text>
@@ -58,10 +58,13 @@
   <view wx:if="{{viewMode === 'today'}}">
     <text class="section-title">📋 今日锻造任务</text>
 
-    <view wx:for="{{tasks}}" wx:key="id" class="task-card {{item.completed ? 'completed' : ''}}">
+    <view wx:for="{{tasks}}" wx:key="id" class="task-card {{item.completed ? 'completed' : ''}} {{item.animClass}}" data-id="{{item.id}}" bindtap="openTaskDetail">
       <!-- 时段徽章 -->
       <text class="task-time-badge badge-{{item.timeClass}}">{{item.timeLabel}}</text>
-      <text class="task-title">{{item.title}}</text>
+      <view class="task-title-row">
+        <text class="task-title">{{item.title}}</text>
+        <text class="task-arrow">›</text>
+      </view>
 
       <!-- 任务描述列表 -->
       <view class="task-desc">
@@ -71,7 +74,7 @@
       <text class="task-xp">⚡ 基础 {{item.baseXP}} XP{{item.bonus > 0 ? ' + 🎲 暴击 +' + item.bonus + ' XP' : ''}}</text>
 
       <!-- 已完成：展开反思区 -->
-      <view wx:if="{{item.completed}}" class="reflection-area">
+      <view wx:if="{{item.completed}}" class="reflection-area" catchtap="noop">
         <text class="reflection-prompt">💭 {{item.prompt}}</text>
         <textarea
           class="reflection-input"
@@ -81,13 +84,13 @@
           bindinput="onReflectInput"
         />
         <view class="reflection-actions">
-          <button class="btn btn-save" data-id="{{item.id}}" bindtap="saveReflection">💾 保存反思</button>
-          <button class="btn btn-undo" data-id="{{item.id}}" bindtap="undoTask">↩ 撤销</button>
+          <button class="btn btn-save" data-id="{{item.id}}" catchtap="saveReflection">💾 保存反思</button>
+          <button class="btn btn-undo" data-id="{{item.id}}" catchtap="undoTask">↩ 撤销</button>
         </view>
       </view>
 
       <!-- 未完成：打卡按钮 -->
-      <button wx:else class="btn btn-complete" data-id="{{item.id}}" bindtap="completeTask">✅ 完成打卡</button>
+      <button wx:else class="btn btn-complete" data-id="{{item.id}}" catchtap="completeTask">✅ 完成打卡</button>
     </view>
 
     <!-- 本周概览 -->

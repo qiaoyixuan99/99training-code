@@ -1,0 +1,205 @@
+<!--
+  Daily Forge — 任务详情页
+  展示完整学习内容、资源链接、搜索功能
+-->
+
+<view class="app {{theme === 'light' ? 'light-theme' : ''}}" wx:if="{{task}}">
+
+  <!-- ═══ 自定义导航栏 ═══ -->
+  <view class="nav-bar">
+    <view class="nav-bar-left" bindtap="goBack">
+      <text class="nav-back">←</text>
+      <text class="nav-back-text">返回</text>
+    </view>
+    <view class="nav-bar-center">
+      <text class="nav-icon">{{task.icon}}</text>
+      <text class="nav-title">{{task.title}}</text>
+    </view>
+    <view class="nav-bar-right" bindtap="toggleSearch">
+      <text class="nav-search-icon">🔍</text>
+    </view>
+  </view>
+
+  <!-- ═══ 搜索面板 ═══ -->
+  <view class="search-panel {{showSearch ? 'show' : ''}}">
+    <view class="search-bar">
+      <input
+        class="search-input"
+        placeholder="搜索学习资源..."
+        value="{{searchQuery}}"
+        bindinput="onSearchInput"
+        bindconfirm="doSearch"
+        confirm-type="search"
+      />
+      <view class="search-btn" bindtap="doSearch">
+        <text>搜索</text>
+      </view>
+    </view>
+
+    <view wx:if="{{searchLoading}}" class="search-loading">
+      <text>搜索中...</text>
+    </view>
+
+    <view wx:if="{{searchResults.length > 0}}" class="search-results">
+      <view
+        wx:for="{{searchResults}}"
+        wx:key="url"
+        class="search-result-item"
+        data-url="{{item.url}}"
+        data-name="{{item.name}}"
+        bindtap="openLink"
+      >
+        <text class="result-name">{{item.name}}</text>
+        <text class="result-source">{{item.source}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ═══ 任务概述 ═══ -->
+  <view class="overview-card">
+    <view class="overview-header">
+      <text class="overview-icon">{{task.icon}}</text>
+      <view class="overview-info">
+        <text class="overview-title">{{task.title}}</text>
+        <text class="overview-subtitle">{{task.subtitle}}</text>
+      </view>
+    </view>
+    <text class="overview-text">{{task.overview}}</text>
+  </view>
+
+  <!-- ═══ Tab 栏 ═══ -->
+  <view class="tab-bar">
+    <view
+      wx:for="{{task.sections}}"
+      wx:key="title"
+      class="tab-item {{activeTab === index ? 'active' : ''}}"
+      data-idx="{{index}}"
+      bindtap="switchTab"
+    >
+      <text class="tab-text">{{item.title}}</text>
+    </view>
+  </view>
+
+  <!-- ═══ 内容区域 ═══ -->
+  <view class="content-area">
+
+    <!-- 通用 section 渲染 -->
+    <block wx:for="{{task.sections}}" wx:key="title">
+      <view wx:if="{{activeTab === index}}" class="section-content fade-in">
+
+        <!-- Section 标题 -->
+        <view class="section-header">
+          <text class="section-title-text">{{item.title}}</text>
+          <text class="section-type-badge badge-{{item.type}}">{{item.type}}</text>
+        </view>
+
+        <!-- 描述文字 -->
+        <view class="section-body">
+          <text class="section-desc">{{item.content}}</text>
+        </view>
+
+        <!-- 步骤列表 -->
+        <view wx:if="{{item.steps}}" class="steps-list">
+          <text class="sub-title">📋 学习步骤</text>
+          <view wx:for="{{item.steps}}" wx:key="*this" wx:for-item="step" wx:for-index="stepIdx" class="step-item">
+            <text class="step-num">{{stepIdx + 1}}</text>
+            <text class="step-text">{{step}}</text>
+          </view>
+        </view>
+
+        <!-- 技巧列表 -->
+        <view wx:if="{{item.tips}}" class="tips-list">
+          <text class="sub-title">💡 学习技巧</text>
+          <view wx:for="{{item.tips}}" wx:key="*this" wx:for-item="tip" class="tip-item">
+            <text class="tip-bullet">▸</text>
+            <text class="tip-text">{{tip}}</text>
+          </view>
+        </view>
+
+        <!-- 模板 -->
+        <view wx:if="{{item.template}}" class="template-list">
+          <text class="sub-title">📐 拆解步骤</text>
+          <view wx:for="{{item.template}}" wx:key="*this" wx:for-item="tpl" class="template-item">
+            <text class="template-text">{{tpl}}</text>
+          </view>
+        </view>
+
+        <!-- 长难句示例 -->
+        <view wx:if="{{item.example}}" class="example-card">
+          <text class="sub-title">📝 示例分析</text>
+          <view class="example-original">
+            <text class="example-label">原文：</text>
+            <text class="example-text">{{item.example.original}}</text>
+          </view>
+          <view class="example-analysis">
+            <text class="example-label">解析：</text>
+            <text class="example-text">{{item.example.analysis}}</text>
+          </view>
+          <view class="example-simplified">
+            <text class="example-label">简化：</text>
+            <text class="example-text">{{item.example.simplified}}</text>
+          </view>
+        </view>
+
+        <!-- 词汇分类 -->
+        <view wx:if="{{item.categories}}" class="categories-list">
+          <text class="sub-title">📚 高频词汇分类</text>
+          <view wx:for="{{item.categories}}" wx:key="name" wx:for-item="cat" class="category-card">
+            <text class="category-name">{{cat.name}}</text>
+            <text class="category-words">{{cat.words}}</text>
+          </view>
+        </view>
+
+        <!-- 课程列表 -->
+        <view wx:if="{{item.courses}}" class="courses-list">
+          <text class="sub-title">🎓 推荐课程</text>
+          <view wx:for="{{item.courses}}" wx:key="name" wx:for-item="course" class="course-card" data-url="{{course.url}}" data-name="{{course.name}}" bindtap="openLink">
+            <view class="course-header">
+              <text class="course-name">{{course.name}}</text>
+              <text class="course-difficulty diff-{{course.difficulty}}">{{course.difficulty}}</text>
+            </view>
+            <text class="course-desc">{{course.desc}}</text>
+            <text class="course-link">🔗 点击查看课程</text>
+          </view>
+        </view>
+
+        <!-- 里程碑 -->
+        <view wx:if="{{item.milestones}}" class="milestones-list">
+          <text class="sub-title">🗺️ 学习路线</text>
+          <view wx:for="{{item.milestones}}" wx:key="level" wx:for-item="ms" class="milestone-card">
+            <view class="milestone-header">
+              <text class="milestone-level">{{ms.level}}</text>
+              <text class="milestone-title">{{ms.title}}</text>
+            </view>
+            <view class="milestone-items">
+              <text wx:for="{{ms.items}}" wx:key="*this" wx:for-item="msItem" class="milestone-item">• {{msItem}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 资源链接 -->
+        <view wx:if="{{item.resources}}" class="resources-list">
+          <text class="sub-title">🔗 学习资源</text>
+          <view
+            wx:for="{{item.resources}}"
+            wx:key="url"
+            class="resource-item"
+            data-url="{{item.url}}"
+            data-name="{{item.name}}"
+            bindtap="openLink"
+          >
+            <text class="resource-name">{{item.name}}</text>
+            <text class="resource-type">{{item.type}}</text>
+            <text class="resource-arrow">›</text>
+          </view>
+        </view>
+
+      </view>
+    </block>
+
+  </view>
+
+  <!-- ═══ 底部安全区 ═══ -->
+  <view class="safe-bottom"></view>
+
+</view>

@@ -156,6 +156,9 @@ Page({
     viewMode: 'today',
     historyList: [],
     toast: { visible: false, msg: '', type: 'normal' },
+    statsAnim: '',
+    xpAnim: '',
+    identityAnim: '',
   },
 
   // ── 内部状态（不参与渲染）──
@@ -176,6 +179,9 @@ Page({
     // 加载数据
     this.loadState();
     this.render();
+
+    // 入场动画
+    setTimeout(() => this.playEntrance(), 100);
   },
 
   onShow() {
@@ -347,6 +353,7 @@ Page({
         reflect: td.reflect || '',
         bonus: td.bonus || 0,
         prompt: REFLECTION_PROMPTS[reflectIdx],
+        animClass: '',
       };
     });
 
@@ -592,6 +599,47 @@ Page({
         'toast.visible': false,
       });
     }, duration || 2500);
+  },
+
+  // ════════════════════════════════════
+  // 任务详情导航
+  // ════════════════════════════════════
+
+  openTaskDetail(e) {
+    const taskId = e.currentTarget.dataset.id;
+    wx.navigateTo({
+      url: `/pages/detail/detail?id=${taskId}`,
+    });
+  },
+
+  noop() {},
+
+  // ════════════════════════════════════
+  // 入场动画（类 GSAP stagger 效果）
+  // ════════════════════════════════════
+
+  playEntrance() {
+    // 使用 CSS 类驱动动画，逐个延迟显示
+    const tasks = this.data.tasks.map((t, i) => ({
+      ...t,
+      animClass: '',
+    }));
+    this.setData({ tasks });
+
+    // stagger 效果：每张卡片延迟 100ms 出现
+    tasks.forEach((t, i) => {
+      setTimeout(() => {
+        const key = `tasks[${i}].animClass`;
+        this.setData({ [key]: 'card-enter' });
+      }, i * 120);
+    });
+
+    // 统计卡片弹入
+    setTimeout(() => this.setData({ statsAnim: 'stats-enter' }), 50);
+    // XP 进度条
+    setTimeout(() => this.setData({ xpAnim: 'xp-enter' }), 350);
+    // 身份横幅
+    setTimeout(() => this.setData({ identityAnim: 'identity-enter' }), 500);
   },
 
   // ════════════════════════════════════
