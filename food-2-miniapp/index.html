@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今天吃什么</title>
+<style>
+  :root {
+    --bg: #fff8f0;
+    --primary: #ff6b6b;
+    --secondary: #ffa94d;
+    --accent: #ffd43b;
+    --green: #69db7c;
+    --text: #4a3728;
+    --card: #fff;
+    --shadow: 0 4px 15px rgba(0,0,0,0.08);
+    --radius: 20px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 30%, #ffccbc 60%, #fff9c4 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 30px;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    text-align: center;
+    padding: 20px 0 8px;
+  }
+  .header h1 {
+    font-size: 2rem;
+    background: linear-gradient(135deg, #ff6b6b, #ff922b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 900;
+    letter-spacing: 2px;
+  }
+  .header .subtitle {
+    font-size: 0.85rem;
+    color: #e07c5a;
+    margin-top: 2px;
+  }
+
+  /* ===== Tab Bar ===== */
+  .tab-bar {
+    display: flex;
+    background: white;
+    border-radius: 30px;
+    padding: 5px;
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 10px;
+    z-index: 10;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px 0;
+    border: none;
+    border-radius: 26px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: transparent;
+    color: #c4a882;
+    font-family: inherit;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, #ff6b6b, #ff922b);
+    color: white;
+    box-shadow: 0 3px 10px rgba(255,107,107,0.35);
+  }
+
+  /* ===== Pages ===== */
+  .page {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .page.active { display: flex; }
+
+  /* ===== Lottery Page ===== */
+  .lottery-stage {
+    background: white;
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .lottery-stage::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 80px; height: 80px;
+    background: var(--accent);
+    border-radius: 50%;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .lottery-stage::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; left: -20px;
+    width: 60px; height: 60px;
+    background: var(--green);
+    border-radius: 50%;
+    opacity: 0.2;
+    pointer-events: none;
+  }
+
+  .food-display {
+    font-size: 100px;
+    line-height: 1;
+    transition: transform 0.1s ease;
+    position: relative;
+    z-index: 1;
+    animation: none;
+  }
+  .food-display.spinning {
+    animation: bounce 0.08s infinite;
+  }
+  .food-display.result {
+    animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-8px) scale(1.05); }
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .food-name {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text);
+    position: relative;
+    z-index: 1;
+    min-height: 32px;
+  }
+
+  .draw-btn {
+    width: 180px;
+    height: 56px;
+    border: none;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #ff6b6b, #ff922b);
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255,107,107,0.4);
+    transition: all 0.15s ease;
+    font-family: inherit;
+    position: relative;
+    z-index: 1;
+  }
+  .draw-btn:active {
+    transform: scale(0.93);
+    box-shadow: 0 2px 8px rgba(255,107,107,0.3);
+  }
+  .draw-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .daily-tip {
+    font-size: 0.8rem;
+    color: #e07c5a;
+    background: #fff5f0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ===== Collection Page ===== */
+  .collection-stats {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    box-shadow: var(--shadow);
+    font-weight: 700;
+    color: var(--text);
+  }
+  .stats-bar {
+    flex: 1;
+    height: 10px;
+    background: #f0e6da;
+    border-radius: 5px;
+    overflow: hidden;
+    max-width: 200px;
+  }
+  .stats-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #69db7c, #40c057);
+    border-radius: 5px;
+    transition: width 0.5s ease;
+  }
+
+  /* ===== Shelf ===== */
+  .cabinet {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .shelf {
+    background: linear-gradient(180deg, #e8c98b 0%, #d4a853 40%, #c4963e 100%);
+    border-radius: 12px;
+    padding: 18px 12px 12px;
+    position: relative;
+    box-shadow:
+      0 4px 0 #a0762e,
+      0 6px 12px rgba(0,0,0,0.1);
+  }
+  .shelf::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 12px; right: 12px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+  }
+  .shelf-label {
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: white;
+    padding: 2px 12px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #b8860b;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .shelf-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+  .dish-card {
+    width: 78px;
+    height: 90px;
+    background: white;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease;
+    cursor: default;
+    position: relative;
+  }
+  .dish-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  }
+  .dish-card.empty {
+    background: #f5f0e8;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.04);
+  }
+  .dish-card .emoji {
+    font-size: 36px;
+    line-height: 1;
+  }
+  .dish-card .label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #8b7355;
+    text-align: center;
+  }
+  .dish-card.empty .emoji {
+    opacity: 0.25;
+  }
+  .dish-card.empty .label {
+    color: #ccc;
+  }
+  .dish-card .new-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ff6b6b;
+    color: white;
+    font-size: 0.55rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 8px;
+    animation: float 2s ease-in-out infinite;
+  }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-120px);
+    background: white;
+    padding: 14px 24px;
+    border-radius: 30px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+    font-weight: 700;
+    font-size: 0.95rem;
+    z-index: 100;
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 400px) {
+    .food-display { font-size: 72px; }
+    .dish-card { width: 64px; height: 76px; }
+    .dish-card .emoji { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>🍽️ 今天吃什么</h1>
+    <div class="subtitle">选择困难症的救星 ✨</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="lottery">🎰 抽奖</button>
+    <button class="tab-btn" data-tab="collection">🏆 收藏柜</button>
+  </div>
+
+  <!-- Lottery Page -->
+  <div class="page active" id="page-lottery">
+    <div class="lottery-stage">
+      <div class="food-display" id="foodEmoji">🎲</div>
+      <div class="food-name" id="foodName">今天吃什么呢？</div>
+      <button class="draw-btn" id="drawBtn" onclick="startDraw()">🎯 抽一个！</button>
+      <div class="daily-tip" id="dailyTip"></div>
+    </div>
+  </div>
+
+  <!-- Collection Page -->
+  <div class="page" id="page-collection">
+    <div class="collection-stats">
+      <span>📦 已收集</span>
+      <span id="statsText">0/12</span>
+      <div class="stats-bar">
+        <div class="stats-fill" id="statsFill" style="width: 0%"></div>
+      </div>
+    </div>
+    <div class="cabinet" id="cabinet"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== DATA ====================
+const DISHES = [
+  { id: 1,  name: '披萨',     emoji: '🍕' },
+  { id: 2,  name: '寿司',     emoji: '🍣' },
+  { id: 3,  name: '拉面',     emoji: '🍜' },
+  { id: 4,  name: '汉堡',     emoji: '🍔' },
+  { id: 5,  name: '塔可',     emoji: '🌮' },
+  { id: 6,  name: '甜甜圈',   emoji: '🍩' },
+  { id: 7,  name: '咖喱',     emoji: '🍛' },
+  { id: 8,  name: '沙拉',     emoji: '🥗' },
+  { id: 9,  name: '便当',     emoji: '🍱' },
+  { id: 10, name: '饺子',     emoji: '🥟' },
+  { id: 11, name: '蛋糕',     emoji: '🎂' },
+  { id: 12, name: '紫菜包饭', emoji: '🍙' },
+];
+
+// ==================== STORAGE ====================
+const STORAGE_KEY = 'food_lottery_data';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { collected: [], lastDate: '', todayCount: 0 };
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function getToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ==================== STATE ====================
+let state = loadData();
+const today = getToday();
+
+// Reset daily counter if new day
+if (state.lastDate !== today) {
+  state.lastDate = today;
+  state.todayCount = 0;
+  saveData(state);
+}
+
+let isDrawing = false;
+
+// ==================== DOM REFS ====================
+const $foodEmoji  = document.getElementById('foodEmoji');
+const $foodName   = document.getElementById('foodName');
+const $drawBtn    = document.getElementById('drawBtn');
+const $dailyTip   = document.getElementById('dailyTip');
+const $toast      = document.getElementById('toast');
+const $statsText  = document.getElementById('statsText');
+const $statsFill  = document.getElementById('statsFill');
+const $cabinet    = document.getElementById('cabinet');
+
+// ==================== HELPERS ====================
+function getUncollected() {
+  return DISHES.filter(d => !state.collected.includes(d.id));
+}
+
+function randomDish(pool) {
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function showToast(msg) {
+  $toast.textContent = msg;
+  $toast.classList.add('show');
+  clearTimeout($toast._timeout);
+  $toast._timeout = setTimeout(() => $toast.classList.remove('show'), 2200);
+}
+
+// ==================== DRAW LOGIC ====================
+function startDraw() {
+  if (isDrawing) return;
+  isDrawing = true;
+  $drawBtn.disabled = true;
+
+  // Determine result
+  let result;
+  const uncollected = getUncollected();
+  const isFirstToday = state.todayCount === 0;
+
+  if (isFirstToday && uncollected.length > 0) {
+    // First draw of the day → guaranteed new dish
+    result = randomDish(uncollected);
+  } else {
+    // Random from all dishes
+    result = randomDish(DISHES);
+  }
+
+  const isNew = !state.collected.includes(result.id);
+
+  // Spin animation
+  let tick = 0;
+  const totalTicks = 20 + Math.floor(Math.random() * 10);
+  let interval = 40;
+  let current = randomDish(DISHES);
+
+  $foodEmoji.classList.add('spinning');
+  $foodName.textContent = '转一转...';
+
+  function tickSpin() {
+    current = randomDish(DISHES);
+    $foodEmoji.textContent = current.emoji;
+    $foodName.textContent = current.name;
+    tick++;
+
+    if (tick >= totalTicks) {
+      // Land on result
+      $foodEmoji.classList.remove('spinning');
+      $foodEmoji.classList.add('result');
+      $foodEmoji.textContent = result.emoji;
+      $foodName.textContent = result.name;
+
+      // Update state
+      state.todayCount++;
+      if (isNew) {
+        state.collected.push(result.id);
+      }
+      saveData(state);
+
+      // Show feedback
+      setTimeout(() => {
+        if (isNew) {
+          showToast(`🎉 新发现！${result.emoji} ${result.name} 加入收藏柜！`);
+        } else {
+          const msgs = [
+            `又来？那就 ${result.emoji} ${result.name} 吧！`,
+            `今天再吃一次 ${result.emoji} ${result.name}~`,
+            `${result.emoji} ${result.name} 再次翻牌！`,
+          ];
+          showToast(msgs[Math.floor(Math.random() * msgs.length)]);
+        }
+      }, 300);
+
+      // Reset animation class
+      setTimeout(() => {
+        $foodEmoji.classList.remove('result');
+      }, 500);
+
+      // Refresh collection
+      renderCollection();
+      updateDailyTip();
+
+      isDrawing = false;
+      $drawBtn.disabled = false;
+      return;
+    }
+
+    // Speed up then slow down
+    if (tick < totalTicks * 0.6) {
+      interval = Math.max(interval - 3, 20);
+    } else {
+      interval += 8;
+    }
+    setTimeout(tickSpin, interval);
+  }
+
+  tickSpin();
+}
+
+// ==================== DAILY TIP ====================
+function updateDailyTip() {
+  const uncollected = getUncollected();
+  if (state.todayCount === 0 && uncollected.length > 0) {
+    $dailyTip.innerHTML = `💡 今天第一次抽，必得新菜品！还有 ${uncollected.length} 种未收集`;
+  } else if (uncollected.length === 0 && state.collected.length === 12) {
+    $dailyTip.innerHTML = '🏆 太厉害了！全部收集完毕！';
+  } else if (state.todayCount > 0 && uncollected.length > 0) {
+    $dailyTip.innerHTML = `🔁 今天已抽 ${state.todayCount} 次，还有 ${uncollected.length} 种未收集`;
+  } else {
+    $dailyTip.innerHTML = `🎲 随机抽一个！`;
+  }
+}
+
+// ==================== COLLECTION RENDERING ====================
+function renderCollection() {
+  const collectedSet = new Set(state.collected);
+  $statsText.textContent = `${state.collected.length}/${DISHES.length}`;
+  $statsFill.style.width = `${(state.collected.length / DISHES.length) * 100}%`;
+
+  // Build shelves: 6 per row, 2 shelves
+  const rows = [
+    DISHES.slice(0, 6),
+    DISHES.slice(6, 12),
+  ];
+
+  $cabinet.innerHTML = rows.map((row, i) => `
+    <div class="shelf">
+      <span class="shelf-label">第 ${i + 1} 排</span>
+      <div class="shelf-row">
+        ${row.map(d => {
+          const collected = collectedSet.has(d.id);
+          return `
+            <div class="dish-card ${collected ? '' : 'empty'}">
+              ${collected && state.collected.length > 0 && state.collected[state.collected.length - 1] === d.id
+                ? '<span class="new-badge">NEW</span>'
+                : ''}
+              <span class="emoji">${collected ? d.emoji : '❓'}</span>
+              <span class="label">${collected ? d.name : '???'}</span>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ==================== TAB SWITCHING ====================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`page-${btn.dataset.tab}`).classList.add('active');
+
+    if (btn.dataset.tab === 'collection') {
+      renderCollection();
+    }
+  });
+});
+
+// ==================== INIT ====================
+updateDailyTip();
+renderCollection();
+</script>
+
+</body>
+</html>
