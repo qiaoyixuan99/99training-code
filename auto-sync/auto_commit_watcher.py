@@ -376,10 +376,9 @@ def main():
     # 检查重复启动
     running = check_running()
     if running:
-        print(f"⚠️  监视器已在运行中 (PID: {running.get('pid')})")
-        print(f"   启动时间: {running.get('started_at')}")
-        print(f"   如需重启，先删除 {PID_FILE}")
-        print(f"   或运行 python auto_commit_watcher.py --status 查看状态")
+        log(f"监视器已在运行中 (PID: {running.get('pid')})")
+        log(f"启动时间: {running.get('started_at')}")
+        log(f"如需重启，先删除 {PID_FILE}")
         return
 
     # 解析间隔参数
@@ -396,4 +395,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # 全局错误捕获：pythonw 无控制台，异常不会显示
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        crash_msg = f"FATAL: {e}\n{traceback.format_exc()}"
+        try:
+            with open(SCRIPT_DIR / "crash.log", "a", encoding="utf-8") as f:
+                f.write(f"[{datetime.now().isoformat()}] {crash_msg}\n")
+        except Exception:
+            pass
