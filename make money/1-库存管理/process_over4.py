@@ -39,6 +39,30 @@ COL_SUM    = 32   # AF — 分值 Sum
 # Phase 1: Read current data
 # ============================================================
 print("[1/4] Reading over3.xlsx...")
+
+# Read computed qty values in data_only mode (P column has formulas)
+wb_data = openpyxl.load_workbook(SRC, data_only=True)
+ws_inv_data = wb_data['Inventory']
+
+# Build qty lookup: row_idx -> computed quantity value
+qty_lookup = {}
+empty_streak = 0
+for row_idx in range(2, ws_inv_data.max_row + 1):
+    model = ws_inv_data.cell(row=row_idx, column=COL_MODEL).value
+    qty = ws_inv_data.cell(row=row_idx, column=COL_QTY).value
+    if model is not None:
+        try:
+            qty_lookup[row_idx] = float(qty) if qty is not None else 0.0
+        except (ValueError, TypeError):
+            qty_lookup[row_idx] = 0.0
+        empty_streak = 0
+    else:
+        empty_streak += 1
+        if empty_streak >= 200:
+            break
+wb_data.close()
+
+# Now read the editable workbook for Q/S/V/D/P values
 wb = openpyxl.load_workbook(SRC)
 ws_inv = wb['Inventory']
 
@@ -56,7 +80,7 @@ for row_idx in range(2, ws_inv.max_row + 1):
             'v': ws_inv.cell(row=row_idx, column=COL_V).value,
             'd': ws_inv.cell(row=row_idx, column=COL_D).value,
             'p': ws_inv.cell(row=row_idx, column=COL_P_EQ).value,
-            'qty': ws_inv.cell(row=row_idx, column=COL_QTY).value,
+            'qty': qty_lookup.get(row_idx, 0.0),
         })
         empty_streak = 0
     else:
