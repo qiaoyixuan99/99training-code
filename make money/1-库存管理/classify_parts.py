@@ -3,26 +3,29 @@ Spare Parts ABC Classification Module (备件ABC等级分类模块)
 ==========================================================
 
 Grade assignment based on composite Sum score:
+
   Sum = Q*0.1 + S*0.1 + V*0.2 + D*0.3 + P*0.3
 
 Where:
-  Q — Quality (质量)        weight: 0.1
-  S — Safety (安全)         weight: 0.1
-  V — Value (价格)          weight: 0.2
-  D — Delivery (交期)       weight: 0.3
+  Q — Quality (质量)             weight: 0.1
+  S — Safety (安全)              weight: 0.1
+  V — Value (价格)               weight: 0.2
+  D — Delivery (交期)            weight: 0.3
   P — Equipment importance (所在设备重要性) weight: 0.3
 
-Classification thresholds (derived from over3 data analysis):
-  Sum >= 4.70  →  Grade A (高优先级)
-  4.66 <= Sum < 4.70  →  Grade B (中优先级)
-  Sum < 4.66  →  Grade C (低优先级)
+Classification thresholds:
+  Sum > 4.5  →  Grade A (高优先级)
+  2.5 < Sum <= 4.5  →  Grade B (中优先级)
+  Sum <= 2.5  →  Grade C (低优先级)
 
 Usage:
-  from classify_parts import classify_by_sum, classify_by_s, compute_sum
+  from classify_parts import classify_by_sum, compute_sum
 
   grade = classify_by_sum(q=5, s=4, v=3, d=5, p=5)
-  grade = classify_by_s(s=4.5)
   total = compute_sum(q=5, s=4, v=3, d=5, p=5)
+
+CLI:
+  python classify_parts.py <input.xlsx> <output.xlsx>
 """
 
 # Sum weight coefficients
@@ -32,13 +35,9 @@ W_V = 0.2  # Value
 W_D = 0.3  # Delivery
 W_P = 0.3  # Equipment importance
 
-# Sum-based classification thresholds
-# Derived from S-based grading applied to over3 data (3593 rows)
-# Grade A (S>4.5): mean Sum=4.72
-# Grade B (2.5<S<4.5): mean Sum=4.68
-# Grade C (S<2.5): mean Sum=4.63
-THRESHOLD_AB = 4.70   # A/B boundary: (4.72 + 4.68) / 2
-THRESHOLD_BC = 4.66   # B/C boundary: (4.68 + 4.63) / 2
+# Sum-based classification thresholds (user-defined)
+THRESHOLD_AB = 4.5   # Sum > 4.5 → A
+THRESHOLD_BC = 2.5   # Sum > 2.5 → B, else C
 
 
 def compute_sum(q, s, v, d, p):
@@ -53,7 +52,7 @@ def compute_sum(q, s, v, d, p):
         p: Equipment importance score (所在设备重要性, 1-5)
 
     Returns:
-        float: Composite sum = Q*0.1 + S*0.1 + V*0.2 + D*0.3 + P*0.3
+        float: Sum = Q*0.1 + S*0.1 + V*0.2 + D*0.3 + P*0.3
     """
     return q * W_Q + s * W_S + v * W_V + d * W_D + p * W_P
 
@@ -64,6 +63,11 @@ def classify_by_sum(q, s, v, d, p):
 
     This is the PRIMARY function for new data entries.
     Computes Sum from the 5 factors and returns the corresponding grade.
+
+    Rules:
+        Sum > 4.5  →  A
+        2.5 < Sum <= 4.5  →  B
+        Sum <= 2.5  →  C
 
     Args:
         q: Quality score (1-5)
@@ -76,49 +80,25 @@ def classify_by_sum(q, s, v, d, p):
         str: 'A', 'B', or 'C'
 
     Example:
-        >>> classify_by_sum(q=5, s=5, v=5, d=5, p=5)
+        >>> classify_by_sum(q=5, s=5, v=5, d=5, p=5)  # Sum=5.0
         'A'
-        >>> classify_by_sum(q=3, s=3, v=3, d=3, p=3)
+        >>> classify_by_sum(q=3, s=3, v=3, d=3, p=3)  # Sum=3.0
+        'B'
+        >>> classify_by_sum(q=1, s=1, v=1, d=1, p=1)  # Sum=1.0
         'C'
     """
     total = compute_sum(q, s, v, d, p)
-    if total >= THRESHOLD_AB:
+    if total > THRESHOLD_AB:
         return 'A'
-    elif total >= THRESHOLD_BC:
+    elif total > THRESHOLD_BC:
         return 'B'
     else:
         return 'C'
 
 
-def classify_by_s(s):
+def classify_with_detail(q, s, v, d, p):
     """
-    Classify spare part into ABC grade based on Safety (S) value alone.
-
-    Rules:
-        S > 4.5  →  A
-        2.5 < S < 4.5  →  B
-        S < 2.5  →  C
-
-    Args:
-        s: Safety score (安全)
-
-    Returns:
-        str: 'A', 'B', or 'C'
-    """
-    if s is None:
-        return 'C'
-    s = float(s)
-    if s > 4.5:
-        return 'A'
-    elif s > 2.5:
-        return 'B'
-    else:
-        return 'C'
-
-
-def classify_both(q, s, v, d, p):
-    """
-    Classify using both methods and return detailed results.
+    Classify and return detailed breakdown.
 
     Args:
         q, s, v, d, p: The 5 evaluation factor scores (1-5)
@@ -126,17 +106,15 @@ def classify_both(q, s, v, d, p):
     Returns:
         dict: {
             'sum': float,
-            'grade_by_sum': str,
-            'grade_by_s': str,
-            's_value': float/int,
+            'grade': str,
+            'q': int, 's': int, 'v': int, 'd': int, 'p': int,
         }
     """
     total = compute_sum(q, s, v, d, p)
     return {
         'sum': round(total, 2),
-        'grade_by_sum': classify_by_sum(q, s, v, d, p),
-        'grade_by_s': classify_by_s(s),
-        's_value': s,
+        'grade': classify_by_sum(q, s, v, d, p),
+        'q': q, 's': s, 'v': v, 'd': d, 'p': p,
     }
 
 
@@ -148,12 +126,10 @@ def process_excel(input_path, output_path):
     Read an Excel file, compute Sum and ABC grade for each row,
     and save to a new file.
 
-    Expects columns: AA(Q), AB(S), AC(V), AD(D), AE(P)
-    Writes to: AF(Sum formula), L(Class)
-
-    Args:
-        input_path: Path to input .xlsx file
-        output_path: Path to output .xlsx file
+    Expects columns in Inventory sheet:
+      AA(Q), AB(S), AC(V), AD(D), AE(P)
+    Writes to:
+      AF (Sum formula), L (Class/grade)
     """
     import openpyxl
 
@@ -180,11 +156,14 @@ def process_excel(input_path, output_path):
             continue
         empty_streak = 0
 
-        q = ws.cell(row=row_idx, column=COL_Q).value or 0
-        s = ws.cell(row=row_idx, column=COL_S).value or 0
-        v = ws.cell(row=row_idx, column=COL_V).value or 0
-        d = ws.cell(row=row_idx, column=COL_D).value or 0
-        p = ws.cell(row=row_idx, column=COL_P).value or 0
+        try:
+            q = int(ws.cell(row=row_idx, column=COL_Q).value or 0)
+            s = int(ws.cell(row=row_idx, column=COL_S).value or 0)
+            v = int(ws.cell(row=row_idx, column=COL_V).value or 0)
+            d = int(ws.cell(row=row_idx, column=COL_D).value or 0)
+            p = int(ws.cell(row=row_idx, column=COL_P).value or 0)
+        except (ValueError, TypeError):
+            q = s = v = d = p = 1
 
         # Write Sum as Excel formula
         formula = f"=AA{row_idx}*0.1+AB{row_idx}*0.1+AC{row_idx}*0.2+AD{row_idx}*0.3+AE{row_idx}*0.3"
@@ -209,25 +188,27 @@ if __name__ == '__main__':
     if len(sys.argv) >= 3:
         process_excel(sys.argv[1], sys.argv[2])
     else:
-        # Quick demo
-        print("ABC Classification Demo")
-        print("=" * 50)
+        print("ABC Classification Demo (Sum-based)")
+        print("=" * 55)
         test_cases = [
             (5, 5, 5, 5, 5),
+            (5, 5, 5, 5, 4),
             (4, 4, 4, 4, 4),
             (3, 3, 3, 3, 3),
             (2, 2, 2, 2, 2),
             (1, 1, 1, 1, 1),
-            (5, 3, 5, 5, 5),
-            (3, 5, 3, 3, 3),
+            (5, 1, 5, 5, 5),
+            (1, 5, 1, 1, 1),
+            (3, 4, 5, 5, 5),
+            (5, 3, 2, 2, 1),
         ]
-        print(f"{'Q':>3} {'S':>3} {'V':>3} {'D':>3} {'P':>3}  {'Sum':>6}  {'Sum-Grade':>10}  {'S-Grade':>8}")
-        print("-" * 60)
+        print(f"{'Q':>3} {'S':>3} {'V':>3} {'D':>3} {'P':>3}  {'Sum':>6}  {'Grade':>6}")
+        print("-" * 45)
         for q, s, v, d, p in test_cases:
-            result = classify_both(q, s, v, d, p)
-            print(f"{q:3} {s:3} {v:3} {d:3} {p:3}  {result['sum']:6.2f}  {result['grade_by_sum']:>10}  {result['grade_by_s']:>8}")
+            result = classify_with_detail(q, s, v, d, p)
+            print(f"{q:3} {s:3} {v:3} {d:3} {p:3}  {result['sum']:6.2f}  {result['grade']:>6}")
         print()
-        print(f"Thresholds: A/B={THRESHOLD_AB}, B/C={THRESHOLD_BC}")
         print(f"Formula: Sum = Q*{W_Q} + S*{W_S} + V*{W_V} + D*{W_D} + P*{W_P}")
+        print(f"Thresholds: Sum > {THRESHOLD_AB} → A, {THRESHOLD_BC} < Sum <= {THRESHOLD_AB} → B, Sum <= {THRESHOLD_BC} → C")
         print()
         print("Usage: python classify_parts.py <input.xlsx> <output.xlsx>")
