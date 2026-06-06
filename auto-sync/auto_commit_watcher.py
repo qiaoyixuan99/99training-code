@@ -62,6 +62,7 @@ IGNORE_PATTERNS = [
     "__pycache__",
     ".pyc",
     ".DS_Store",
+    "~$",       # Excel/Office 临时锁定文件
 ]
 
 

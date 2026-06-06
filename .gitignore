@@ -40,6 +40,12 @@ andrej-karpathy-skills/
 .env.local
 *.private.config.json
 
+# Excel temp files (Office lock files)
+~$*.xlsx
+~$*.xls
+~$*.docx
+~$*.pptx
+
 # Auto-sync watcher runtime files
 auto-sync/.watcher_pid.json
 auto-sync/watcher.log

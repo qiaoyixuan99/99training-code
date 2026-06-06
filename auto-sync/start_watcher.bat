@@ -18,15 +18,15 @@ echo   仓库路径: %cd%
 echo   检查间隔: 120 秒（每 2 分钟）
 echo.
 
-:: 使用 pythonw 在后台运行（无命令行窗口）
-:: 如果没有 pythonw，回退到普通 python
+:: 使用 pythonw 在后台运行（无命令行窗口，不弹窗）
 where pythonw >nul 2>&1
 if %errorlevel%==0 (
     echo   模式: 后台静默运行
     start "" pythonw "%~dp0auto_commit_watcher.py" --interval 120
 ) else (
-    echo   模式: 最小化窗口运行
-    start /min "" python "%~dp0auto_commit_watcher.py" --interval 120
+    echo   [错误] 未找到 pythonw.exe，请安装 Python 后重试
+    pause
+    exit /b 1
 )
 
 echo   监视器已在后台启动！
