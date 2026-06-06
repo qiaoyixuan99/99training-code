@@ -1,0 +1,53 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/category/category",
+    "pages/detail/detail",
+    "pages/cart/cart",
+    "pages/diary/diary",
+    "pages/order/order",
+    "pages/admin/admin"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#FF7EB3",
+    "navigationBarTitleText": "情侣美食记",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#FFF0F5"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#FF7EB3",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "美食",
+        "iconPath": "images/tab-food.png",
+        "selectedIconPath": "images/tab-food-active.png"
+      },
+      {
+        "pagePath": "pages/cart/cart",
+        "text": "购物车",
+        "iconPath": "images/tab-cart.png",
+        "selectedIconPath": "images/tab-cart-active.png"
+      },
+      {
+        "pagePath": "pages/diary/diary",
+        "text": "饮食日记",
+        "iconPath": "images/tab-diary.png",
+        "selectedIconPath": "images/tab-diary-active.png"
+      },
+      {
+        "pagePath": "pages/admin/admin",
+        "text": "管理",
+        "iconPath": "images/tab-admin.png",
+        "selectedIconPath": "images/tab-admin-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

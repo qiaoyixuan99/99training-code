@@ -5,9 +5,9 @@
   ],
   "window": {
     "navigationBarTitleText": "Daily Forge",
-    "navigationBarBackgroundColor": "#0f1117",
+    "navigationBarBackgroundColor": "#0d0e12",
     "navigationBarTextStyle": "white",
-    "backgroundColor": "#0f1117"
+    "backgroundColor": "#0d0e12"
   },
   "darkmode": true,
   "themeLocation": "theme.json",

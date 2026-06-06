@@ -11,7 +11,7 @@ const app = getApp();
 const TASKS = [
   {
     id: 'morning',
-    timeLabel: '🌅 上午 · 1h',
+    timeLabel: '上午 · 1h',
     timeClass: 'morning',
     title: '语法 + 泛听',
     descs: [
@@ -23,7 +23,7 @@ const TASKS = [
   },
   {
     id: 'noon',
-    timeLabel: '☀️ 中午 · 20min',
+    timeLabel: '中午 · 20min',
     timeClass: 'noon',
     title: '词汇突击',
     descs: [
@@ -35,11 +35,11 @@ const TASKS = [
   },
   {
     id: 'afternoon',
-    timeLabel: '🌤️ 下午 · 1h',
+    timeLabel: '下午 · 1h',
     timeClass: 'afternoon',
     title: '英文技术精读',
     descs: [
-      '精读 1 篇英文技术文章（AI/Agent 方向）',
+      '精读 1 篇英文技术文章',
       '拆解 3 个长难句，标注语法结构',
     ],
     baseXP: 10,
@@ -47,15 +47,15 @@ const TASKS = [
   },
   {
     id: 'evening',
-    timeLabel: '🌙 晚上 · 1.5h',
+    timeLabel: '晚上 · 1.5h',
     timeClass: 'evening',
-    title: 'Agent 开发实战',
+    title: '编程实战',
     descs: [
-      'DeepLearning.AI LangChain 短课 / RAG 实战',
+      '完成在线课程或实战项目练习',
       '写代码，产出可运行的结果',
     ],
     baseXP: 20,
-    track: 'agent',
+    track: 'dev',
   },
 ];
 
@@ -69,21 +69,21 @@ const REFLECTION_PROMPTS = [
 ];
 
 const RANKS = [
-  { level: 1, xp: 0, name: 'Prompt 学徒', icon: '🔰' },
-  { level: 2, xp: 80, name: 'Grammar 工匠', icon: '📐' },
-  { level: 3, xp: 180, name: 'RAG 探索者', icon: '🔍' },
-  { level: 4, xp: 320, name: 'Vector 航海家', icon: '🧭' },
-  { level: 5, xp: 500, name: 'Chain 编织者', icon: '⛓️' },
-  { level: 6, xp: 720, name: 'Function 召唤师', icon: '🪄' },
-  { level: 7, xp: 980, name: 'Agent 架构师', icon: '🏛️' },
-  { level: 8, xp: 1300, name: 'Multi-Agent 指挥', icon: '🎭' },
-  { level: 9, xp: 1680, name: 'LangGraph 塑造者', icon: '🧬' },
-  { level: 10, xp: 2120, name: 'AI 工程师', icon: '⚡' },
-  { level: 11, xp: 2620, name: 'LLM 驯兽师', icon: '🐉' },
-  { level: 12, xp: 3200, name: '推理系统设计者', icon: '🧠' },
-  { level: 13, xp: 3860, name: '双语 AI 先锋', icon: '🌐' },
-  { level: 14, xp: 4600, name: '全栈 Agent 大师', icon: '👑' },
-  { level: 15, xp: 5500, name: '第二职业就绪', icon: '🚀' },
+  { level: 1, xp: 0, name: '初识门径', icon: '🌱' },
+  { level: 2, xp: 80, name: '每日自律', icon: '☀️' },
+  { level: 3, xp: 180, name: '积少成多', icon: '📚' },
+  { level: 4, xp: 320, name: '学以致用', icon: '🔧' },
+  { level: 5, xp: 500, name: '专注精进', icon: '🎯' },
+  { level: 6, xp: 720, name: '突破瓶颈', icon: '⚡' },
+  { level: 7, xp: 980, name: '炉火纯青', icon: '💎' },
+  { level: 8, xp: 1300, name: '游刃有余', icon: '🧭' },
+  { level: 9, xp: 1680, name: '独当一面', icon: '🏛️' },
+  { level: 10, xp: 2120, name: '出类拔萃', icon: '🏆' },
+  { level: 11, xp: 2620, name: '大器已成', icon: '🌟' },
+  { level: 12, xp: 3200, name: '融会贯通', icon: '🔮' },
+  { level: 13, xp: 3860, name: '开拓创新', icon: '🚀' },
+  { level: 14, xp: 4600, name: '登峰造极', icon: '👑' },
+  { level: 15, xp: 5500, name: '终身学习者', icon: '⛰️' },
 ];
 
 const STORAGE_KEY = 'daily_forge_v1';
@@ -145,8 +145,8 @@ Page({
     dateDisplay: '',
     streak: 0,
     xp: 0,
-    rank: { level: 1, name: 'Prompt 学徒', icon: '🔰' },
-    nextRankName: 'Grammar 工匠',
+    rank: { level: 1, name: '初识门径', icon: '🌱' },
+    nextRankName: '每日自律',
     xpInLevel: 0,
     xpNeeded: 80,
     xpPercent: 0,
@@ -220,10 +220,10 @@ Page({
     const isLight = theme === 'light';
     wx.setNavigationBarColor({
       frontColor: isLight ? '#000000' : '#ffffff',
-      backgroundColor: isLight ? '#f5f5f7' : '#0f1117',
+      backgroundColor: isLight ? '#f5f5f7' : '#0d0e12',
     });
     wx.setBackgroundColor({
-      backgroundColor: isLight ? '#f5f5f7' : '#0f1117',
+      backgroundColor: isLight ? '#f5f5f7' : '#0d0e12',
     });
   },
 
@@ -245,7 +245,7 @@ Page({
       app.setThemeMode(nextMode);
     }
 
-    const labels = { dark: '🌙 黑夜模式', light: '☀️ 白天模式', auto: '🔄 跟随系统' };
+    const labels = { dark: '黑夜模式', light: '白天模式', auto: '跟随系统' };
     this.showToast(labels[nextMode], 'normal', 1500);
   },
 
@@ -382,7 +382,7 @@ Page({
       streak: s.streak,
       xp: s.xp,
       rank,
-      nextRankName: nextRank ? nextRank.icon + ' ' + nextRank.name : '👑 终极',
+      nextRankName: nextRank ? nextRank.icon + ' ' + nextRank.name : '已达巅峰',
       xpInLevel,
       xpNeeded,
       xpPercent,
@@ -422,9 +422,9 @@ Page({
     if (roll < 0.10) {
       multiplier = Math.random() < 0.5 ? 3 : 2;
       toastType = 'crit';
-      toastMsg = `🎯 暴击! ${multiplier}x XP! +${task.baseXP * multiplier} XP`;
+      toastMsg = `暴击! ${multiplier}x XP! +${task.baseXP * multiplier} XP`;
     } else {
-      toastMsg = `✅ +${task.baseXP} XP`;
+      toastMsg = `+${task.baseXP} XP`;
     }
 
     const bonus = task.baseXP * (multiplier - 1);
@@ -447,7 +447,7 @@ Page({
       s.xp += streakBonus;
       this.saveState();
       this.render();
-      this.showToast(`🔥 连续 ${s.streak} 天! 额外 +${streakBonus} XP`, 'streak-bonus', 3000);
+      this.showToast(`连续 ${s.streak} 天! 额外 +${streakBonus} XP`, 'streak-bonus', 3000);
       return;
     }
 
@@ -459,7 +459,7 @@ Page({
       this.render();
       this.showToast(toastMsg, toastType, 2500);
       setTimeout(() => {
-        this.showToast(`⬆️ 升级! ${newRank.icon} ${newRank.name}`, 'level-up', 3500);
+        this.showToast(`升级! ${newRank.icon} ${newRank.name}`, 'level-up', 3500);
       }, 600);
       return;
     }
@@ -496,7 +496,7 @@ Page({
    */
   saveReflection(e) {
     this.saveState();
-    this.showToast('💾 反思已保存', 'normal', 1800);
+    this.showToast('反思已保存', 'normal', 1800);
   },
 
   /**
@@ -520,7 +520,7 @@ Page({
     this.updateStreak();
     this.saveState();
     this.render();
-    this.showToast('↩ 已撤销', 'normal', 1500);
+    this.showToast('已撤销', 'normal', 1500);
   },
 
   // ════════════════════════════════════
@@ -552,7 +552,7 @@ Page({
     const historyList = dates.map(d => {
       const dd = s.daily[d];
       const engDone = [dd.morning, dd.noon].every(t => t?.done);
-      const agentDone = dd.evening?.done;
+      const devDone = dd.evening?.done;
       const allDone = TASKS.every(t => dd[t.id]?.done);
 
       const dayXP = TASKS.reduce((sum, t) => {
@@ -573,7 +573,7 @@ Page({
         reflection: reflection.slice(0, 80) + (reflection.length > 80 ? '...' : ''),
         allDone,
         engDone,
-        agentDone,
+        devDone,
       };
     });
 
@@ -661,7 +661,7 @@ Page({
           };
           this.saveState();
           this.render();
-          this.showToast('🔄 已重置，重新出发!', 'normal', 2000);
+          this.showToast('已重置，重新出发!', 'normal', 2000);
         }
       },
     });

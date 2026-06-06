@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "情侣美食记",
+  "usingComponents": {
+    "food-card": "/components/food-card/index",
+    "cart-badge": "/components/cart-badge/index"
+  },
+  "navigationStyle": "custom"
+}

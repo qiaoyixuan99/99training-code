@@ -1,0 +1,65 @@
+<view class="page-cart">
+  <!-- 购物车列表 -->
+  <view wx:if="{{cartItems.length > 0}}" class="cart-list">
+    <view
+      wx:for="{{cartItems}}"
+      wx:key="index"
+      class="cart-item card slide-in"
+    >
+      <image src="{{item.image}}" class="cart-item-img img-round" mode="aspectFill"></image>
+      <view class="cart-item-info flex-1">
+        <view class="text-bold">{{item.name}}</view>
+        <view class="flex-row mt-8">
+          <text wx:if="{{item.isDouble}}" class="tag" style="background:#FFE0EC;color:#FF7EB3">💑 情侣份</text>
+          <text class="text-sm text-secondary">单价 ¥{{item.price}}</text>
+        </view>
+        <!-- 情侣份切换 -->
+        <view class="double-toggle mt-8" catchtap="onToggleDouble" data-index="{{index}}">
+          <text wx:if="{{!item.isDouble}}">💑 换情侣份(88折)</text>
+          <text wx:else>👤 换单人份</text>
+        </view>
+      </view>
+      <view class="cart-item-right">
+        <text class="text-primary text-bold" style="font-size:30rpx">¥{{item.itemTotal}}</text>
+        <text class="text-sm text-secondary">{{item.calTotal}} kcal</text>
+        <!-- 数量控制 -->
+        <view class="qty-control mt-8">
+          <view class="qty-btn" catchtap="onDecrease" data-index="{{index}}">-</view>
+          <text class="qty-num">{{item.quantity}}</text>
+          <view class="qty-btn" catchtap="onIncrease" data-index="{{index}}">+</view>
+        </view>
+      </view>
+      <!-- 删除按钮 -->
+      <view class="remove-btn" catchtap="onRemove" data-index="{{index}}">
+        <text>🗑️</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空购物车 -->
+  <view wx:else class="empty-state">
+    <text class="icon">🛒</text>
+    <text>购物车空空如也～</text>
+    <text class="text-sm" style="margin-top:8rpx">快去看看有什么好吃的吧 💕</text>
+    <button class="btn-primary mt-24" bindtap="goHome">去逛逛</button>
+  </view>
+
+  <!-- 底部结算栏 -->
+  <view wx:if="{{cartItems.length > 0}}" class="bottom-bar safe-bottom">
+    <view class="flex-1" catchtap="onClearCart">
+      <text class="text-sm text-secondary">清空</text>
+    </view>
+    <view class="total-info">
+      <view class="text-bold">¥{{totalPrice}}</view>
+      <view class="text-sm text-secondary">{{totalCalories}} kcal</view>
+    </view>
+    <button class="btn-checkout" bindtap="onCheckout">
+      去结算 ({{cartItems.length}})
+    </button>
+  </view>
+
+  <!-- 甜蜜动画 -->
+  <view wx:for="{{loveAnimations}}" wx:key="id" class="love-float" style="left:{{item.x}}rpx;bottom:{{item.y}}rpx">
+    <text>{{item.text}}</text>
+  </view>
+</view>

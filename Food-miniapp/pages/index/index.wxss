@@ -1,0 +1,301 @@
+/* ──────────────────────────────────────
+   今天吃什么 — 美食抽奖小程序
+   卡通美食风格 · 双主题支持
+   ────────────────────────────────────── */
+
+/* ═══ 黑暗主题（默认） ═══ */
+.app {
+  --bg: #fff2df;
+  --surface: #fffaf2;
+  --surface2: #ffeede;
+  --border: #ffe3b6;
+  --text: #6a3e1a;
+  --text2: #aa612c;
+  --text3: #c96f2e;
+  --accent: #ffaa5e;
+  --accent2: #f59e3e;
+  --btnBg: #f59e3e;
+  --btnShadow: #9b4819;
+  --cabinetBg: #dbbd8c;
+  --cabinetInner: #f7e5c2;
+  --cardBg: #fef7e0;
+  --cardShadow: #b97f48;
+  --navBg: #ffaa5e;
+  --navBorder: #ffd58c;
+  --navText: #ffffff;
+  --navBtn: #fff0c0;
+  --navBtnActive: #ffd966;
+
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 40rpx;
+}
+
+/* ═══ 明亮主题 ═══ */
+.app.light-theme {
+  --bg: #fff2df;
+  --surface: #fffaf2;
+  --surface2: #ffeede;
+  --border: #ffe3b6;
+  --text: #6a3e1a;
+  --text2: #aa612c;
+  --text3: #c96f2e;
+  --accent: #ffaa5e;
+  --accent2: #f59e3e;
+  --btnBg: #f59e3e;
+  --btnShadow: #9b4819;
+  --cabinetBg: #dbbd8c;
+  --cabinetInner: #f7e5c2;
+  --cardBg: #fef7e0;
+  --cardShadow: #b97f48;
+  --navBg: #ffaa5e;
+  --navBorder: #ffd58c;
+  --navText: #ffffff;
+  --navBtn: #fff0c0;
+  --navBtnActive: #ffd966;
+}
+
+/* ═══ 顶部导航栏 ═══ */
+.nav-bar {
+  background: var(--navBg);
+  padding: 32rpx 40rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 8rpx solid var(--navBorder);
+  padding-top: calc(88rpx + env(safe-area-inset-top));
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.logo-icon {
+  font-size: 48rpx;
+}
+
+.logo-text {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: var(--navText);
+  text-shadow: 4rpx 4rpx 0 #b45a2b;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 20rpx;
+}
+
+.nav-tab {
+  background: var(--navBtn);
+  padding: 14rpx 28rpx;
+  border-radius: 60rpx;
+  font-weight: bold;
+  font-size: 24rpx;
+  color: #c96f2e;
+  transition: all 0.15s;
+  box-shadow: 0 6rpx 0 #d6914a;
+}
+
+.nav-tab.active {
+  background: var(--navBtnActive);
+  color: #8b4100;
+  box-shadow: inset 0 2rpx 6rpx rgba(0,0,0,0.1), 0 4rpx 0 #b45f28;
+}
+
+/* ═══ 抽奖页面 ═══ */
+.lottery-page {
+  padding: 40rpx 32rpx;
+}
+
+.lottery-card {
+  background: var(--surface2);
+  border-radius: 58rpx;
+  padding: 36rpx 28rpx;
+  box-shadow: inset 0 2rpx 10rpx #fff6e8, 0 20rpx 30rpx rgba(0, 0, 0, 0.08);
+}
+
+.dish-showcase {
+  background: #fff3e2;
+  border-radius: 48rpx;
+  padding: 36rpx;
+  text-align: center;
+  border: 4rpx solid #ffdbb5;
+}
+
+.food-img-box {
+  width: 320rpx;
+  height: 320rpx;
+  margin: 0 auto;
+  background: #fde9cf;
+  border-radius: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16rpx 0 #ca9a6e;
+  overflow: hidden;
+}
+
+.food-img {
+  width: 100%;
+  height: 100%;
+}
+
+.dish-name {
+  font-size: 40rpx;
+  font-weight: 800;
+  background: #ffffff;
+  display: inline-block;
+  padding: 12rpx 40rpx;
+  border-radius: 60rpx;
+  margin-top: 32rpx;
+  color: #bd6b1e;
+  box-shadow: inset 0 2rpx 8rpx #ffe0aa, 0 8rpx 0 #c27d45;
+  font-family: monospace;
+  letter-spacing: 2rpx;
+}
+
+/* ═══ 抽奖按钮 ═══ */
+.spin-button {
+  width: 85%;
+  margin: 40rpx auto 0;
+  border: none;
+  font-size: 36rpx;
+  font-weight: bold;
+  padding: 28rpx 0;
+  border-radius: 100rpx;
+  color: #ffffff;
+  text-shadow: 4rpx 4rpx 0 #a3420c;
+  background: var(--btnBg);
+  box-shadow: 0 14rpx 0 var(--btnShadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20rpx;
+}
+
+.spin-button::after {
+  border: none;
+}
+
+.spin-button:active {
+  transform: translateY(6rpx);
+  box-shadow: 0 8rpx 0 var(--btnShadow);
+}
+
+/* ═══ 提示信息 ═══ */
+.reward-msg {
+  background: #ffecb3;
+  margin-top: 28rpx;
+  padding: 18rpx;
+  border-radius: 44rpx;
+  font-size: 24rpx;
+  color: #aa612c;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* ═══ 收藏柜页面 ═══ */
+.collection-page {
+  padding: 32rpx 28rpx;
+}
+
+.cabinet-header {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  background: #e7cba5;
+  padding: 14rpx 32rpx;
+  border-radius: 80rpx;
+  width: fit-content;
+  margin-bottom: 32rpx;
+  color: #6a3e1a;
+}
+
+.cabinet-grid {
+  background: var(--cabinetBg);
+  border-radius: 48rpx;
+  padding: 32rpx 20rpx;
+  box-shadow: inset 0 0 0 6rpx var(--cabinetInner), inset 0 0 0 14rpx #e7c894, 0 14rpx 24rpx rgba(0,0,0,0.1);
+  min-height: 500rpx;
+}
+
+.shelf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28rpx;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12rpx 8rpx;
+}
+
+/* ═══ 收藏卡片 — 陈列在柜子上的小盘子 ═══ */
+.collect-item {
+  background: var(--cardBg);
+  width: 200rpx;
+  border-radius: 32rpx;
+  padding: 20rpx 12rpx;
+  text-align: center;
+  box-shadow: 0 16rpx 0 var(--cardShadow);
+  border: 4rpx solid #ffdd99;
+}
+
+.collect-img-box {
+  width: 140rpx;
+  height: 140rpx;
+  margin: 0 auto;
+  background: #fff2e0;
+  border-radius: 28rpx;
+  overflow: hidden;
+  box-shadow: inset 0 2rpx 8rpx rgba(0,0,0,0.05), 0 8rpx 12rpx rgba(0,0,0,0.1);
+}
+
+.collect-img {
+  width: 100%;
+  height: 100%;
+}
+
+.collect-name {
+  font-size: 22rpx;
+  font-weight: bold;
+  margin-top: 16rpx;
+  background: #fff0c0;
+  padding: 8rpx 10rpx;
+  border-radius: 60rpx;
+  color: #af5f27;
+}
+
+/* ═══ 空柜子 ═══ */
+.empty-cabinet {
+  text-align: center;
+  padding: 120rpx 40rpx;
+  color: #ffeaac;
+  font-weight: bold;
+  font-size: 28rpx;
+  background: #c8a16e;
+  border-radius: 40rpx;
+  margin: 20rpx;
+}
+
+/* ═══ 收藏柜底部 ═══ */
+.cabinet-footer {
+  margin-top: 20rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--text2);
+}
+
+/* ═══ 底部装饰 ═══ */
+.footer-note {
+  background: #ffc489;
+  text-align: center;
+  padding: 22rpx;
+  font-size: 22rpx;
+  font-weight: bold;
+  color: #673f1a;
+  margin-top: 40rpx;
+}

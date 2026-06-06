@@ -1,0 +1,93 @@
+<!--
+  今天吃什么 · 美食抽奖小程序
+  抽奖 + 收藏柜 双页面
+-->
+
+<view class="app {{theme === 'light' ? 'light-theme' : ''}}">
+
+  <!-- ═══ 顶部导航栏 ═══ -->
+  <view class="nav-bar">
+    <view class="logo">
+      <text class="logo-icon">🍽️</text>
+      <text class="logo-text">今天吃什么</text>
+    </view>
+    <view class="nav-tabs">
+      <view
+        class="nav-tab {{viewMode === 'lottery' ? 'active' : ''}}"
+        bindtap="switchToLottery"
+      >🎲 抽奖</view>
+      <view
+        class="nav-tab {{viewMode === 'collection' ? 'active' : ''}}"
+        bindtap="switchToCollection"
+      >📦 收藏柜</view>
+    </view>
+  </view>
+
+  <!-- ═══ 抽奖页面 ═══ -->
+  <view wx:if="{{viewMode === 'lottery'}}" class="lottery-page">
+    <view class="lottery-card">
+      <!-- 菜品展示 -->
+      <view class="dish-showcase">
+        <view class="food-img-box">
+          <image
+            class="food-img"
+            src="{{currentDish.img}}"
+            mode="aspectFill"
+          />
+        </view>
+        <view class="dish-name">{{currentDish.name}}</view>
+      </view>
+
+      <!-- 抽奖按钮 -->
+      <button class="spin-button" bindtap="performLottery">
+        <text>🎡 摇一摇开饭 🎡</text>
+      </button>
+
+      <!-- 提示信息 -->
+      <view class="reward-msg">{{rewardMsg}}</view>
+    </view>
+  </view>
+
+  <!-- ═══ 收藏柜页面 ═══ -->
+  <view wx:if="{{viewMode === 'collection'}}" class="collection-page">
+    <view class="cabinet-header">
+      <text>🗄️</text>
+      <text>我的美食柜</text>
+    </view>
+
+    <view class="cabinet-grid">
+      <!-- 有待展示 -->
+      <view wx:if="{{collectedDishes.length > 0}}" class="shelf">
+        <view
+          wx:for="{{collectedDishes}}"
+          wx:key="id"
+          class="collect-item"
+        >
+          <view class="collect-img-box">
+            <image
+              class="collect-img"
+              src="{{item.img}}"
+              mode="aspectFill"
+            />
+          </view>
+          <view class="collect-name">{{item.name}}</view>
+        </view>
+      </view>
+
+      <!-- 空柜子 -->
+      <view wx:else class="empty-cabinet">
+        <text>✨ 柜子空空，快去抽奖收集美味 ✨</text>
+      </view>
+    </view>
+
+    <view class="cabinet-footer">
+      <text>🍴 每道菜都是独一无二的收藏 🍴</text>
+    </view>
+  </view>
+
+  <!-- ═══ 底部装饰 ═══ -->
+  <view class="footer-note">
+    <text>🧸 每天抽抽乐 | 解锁新料理 装满你的小柜子 🧸</text>
+  </view>
+
+</view>

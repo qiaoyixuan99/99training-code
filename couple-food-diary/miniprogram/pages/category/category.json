@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "分类美食",
+  "usingComponents": {
+    "food-card": "/components/food-card/index"
+  },
+  "navigationBarBackgroundColor": "#FF7EB3",
+  "navigationBarTextStyle": "white"
+}

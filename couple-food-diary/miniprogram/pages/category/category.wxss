@@ -1,0 +1,62 @@
+.page-category {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.sort-bar {
+  display: flex;
+  background: #FFFFFF;
+  padding: 16rpx 24rpx;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1rpx solid var(--border);
+}
+
+.sort-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  padding: 8rpx 0;
+}
+
+.sort-item.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.sort-arrow {
+  font-size: 20rpx;
+  margin-left: 4rpx;
+}
+
+.food-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 16rpx 24rpx;
+}
+
+.food-grid > food-card {
+  margin-bottom: 20rpx;
+}
+
+.love-float {
+  position: fixed;
+  bottom: 200rpx;
+  z-index: 999;
+  animation: floatUp 1s ease-out forwards;
+  pointer-events: none;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(0.8); }
+  50% { opacity: 1; transform: translateY(-100rpx) scale(1.2); }
+  100% { opacity: 0; transform: translateY(-200rpx) scale(1); }
+}

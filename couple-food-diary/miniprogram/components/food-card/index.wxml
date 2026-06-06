@@ -1,0 +1,23 @@
+<view class="food-card card" bindtap="onTap">
+  <view class="food-image img-round">
+    <image src="{{food.image}}" mode="aspectFill" lazy-load="{{true}}"></image>
+    <view class="food-cal-tag">{{food.calories}} kcal</view>
+  </view>
+  <view class="food-info">
+    <view class="food-name text-bold">{{food.name}}</view>
+    <view class="food-desc text-sm text-secondary">{{food.desc || food.categoryName}}</view>
+    <view class="flex-between mt-8">
+      <view class="food-price">
+        <text class="text-primary text-bold" style="font-size:32rpx">¥{{food.price}}</text>
+        <text class="text-sm text-secondary" wx:if="{{food.isDoublePrice}}" style="text-decoration:line-through;margin-left:8rpx">¥{{food.originalPrice}}</text>
+      </view>
+      <view class="add-cart-btn" catchtap="onAddCart">
+        <text>🛒+</text>
+      </view>
+    </view>
+  </view>
+  <!-- 收藏按钮 -->
+  <view class="like-btn" catchtap="onLike">
+    <text>{{isLiked ? '❤️' : '🤍'}}</text>
+  </view>
+</view>

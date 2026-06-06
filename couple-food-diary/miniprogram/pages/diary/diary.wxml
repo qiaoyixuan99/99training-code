@@ -1,0 +1,104 @@
+<view class="page-diary">
+  <!-- 日期切换 -->
+  <view class="date-nav">
+    <view class="date-arrow" bindtap="onPrevDay">◀</view>
+    <view class="date-display">
+      <picker mode="date" value="{{selectedDate}}" bindchange="onDateChange">
+        <view class="date-text">{{selectedDate}}</view>
+      </picker>
+      <text class="weekday">{{weekDay}}</text>
+    </view>
+    <view class="date-arrow" bindtap="onNextDay">▶</view>
+  </view>
+
+  <!-- 卡路里环形统计 -->
+  <view class="cal-card card">
+    <view class="cal-header flex-between">
+      <view class="text-bold">🔥 今日摄入</view>
+      <text class="text-sm text-secondary">建议 2000 kcal</text>
+    </view>
+    <view class="cal-progress">
+      <view class="cal-circle">
+        <view class="cal-num">
+          <text style="font-size:56rpx;font-weight:700;color:var(--primary)">{{totalCalories}}</text>
+          <text class="text-sm text-secondary"> kcal</text>
+        </view>
+        <view class="cal-percent text-sm">
+          <text>{{getCalPercent()}}%</text>
+        </view>
+      </view>
+      <!-- 进度条 -->
+      <view class="progress-bar">
+        <view class="progress-fill" style="width:{{getCalPercent()}}%"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 四餐分类 -->
+  <view wx:if="{{diaryEntry}}" class="meals-section">
+    <view wx:for="{{mealTypes}}" wx:key="key" class="meal-group card">
+      <view class="meal-header flex-between">
+        <view class="flex-row">
+          <text style="font-size:36rpx;margin-right:12rpx">{{item.icon}}</text>
+          <text class="text-bold">{{item.name}}</text>
+        </view>
+        <text class="text-primary text-bold">{{diaryEntry.meals[item.key].totalCal || 0}} kcal</text>
+      </view>
+
+      <!-- 食物列表 -->
+      <view wx:if="{{diaryEntry.meals[item.key].items.length > 0}}" class="meal-items">
+        <view
+          wx:for="{{diaryEntry.meals[item.key].items}}"
+          wx:for-item="food"
+          wx:key="index"
+          class="meal-item"
+        >
+          <image src="{{food.image}}" class="meal-img img-round" mode="aspectFill"></image>
+          <view class="flex-1">
+            <view class="text-bold text-sm">{{food.name}}</view>
+            <view class="flex-row">
+              <text wx:if="{{food.isDouble}}" class="tag">💑情侣份</text>
+              <text class="text-sm text-secondary">x{{food.quantity}}</text>
+              <text class="text-sm text-secondary" wx:if="{{food.time}}" style="margin-left:8rpx">{{food.time}}</text>
+            </view>
+          </view>
+          <view class="text-right">
+            <text class="text-sm">🔥 {{food.calories * (food.isDouble ? 2 : 1) * food.quantity}} kcal</text>
+          </view>
+          <!-- 删除 -->
+          <view class="delete-btn" catchtap="onDeleteItem" data-mealtype="{{item.key}}" data-index="{{index}}">
+            <text style="font-size:24rpx;opacity:0.4">✕</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空餐 -->
+      <view wx:else class="meal-empty">
+        <text class="text-sm text-secondary">还没有记录，去下单美食吧～</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 7天趋势 -->
+  <view class="card week-card">
+    <view class="text-bold mb-16">📈 近7天摄入趋势</view>
+    <view class="week-chart">
+      <view wx:for="{{weekCalories}}" wx:key="date" class="chart-bar-wrap">
+        <view class="chart-bar" style="height:{{item.calories / 20 > 0 ? item.calories / 20 : 4}}rpx">
+          <text wx:if="{{item.calories > 0}}" class="bar-val">{{item.calories}}</text>
+        </view>
+        <text class="chart-label">{{item.day}}</text>
+      </view>
+    </view>
+    <view class="text-center mt-16 text-sm text-secondary">
+      本周总摄入：<text class="text-bold text-primary">{{totalWeekCalories || 0}} kcal</text>
+    </view>
+  </view>
+
+  <!-- 甜蜜动画 -->
+  <view wx:for="{{loveAnimations}}" wx:key="id" class="love-float" style="left:{{item.x}}rpx;bottom:{{item.y}}rpx">
+    <text>{{item.text}}</text>
+  </view>
+
+  <view class="safe-bottom" style="height:60rpx"></view>
+</view>

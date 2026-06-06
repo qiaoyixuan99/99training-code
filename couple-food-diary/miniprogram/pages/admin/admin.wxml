@@ -1,0 +1,180 @@
+<view class="page-admin">
+  <!-- 管理员登录 -->
+  <view wx:if="{{!isAdmin}}" class="login-card card">
+    <view class="text-center">
+      <text style="font-size:80rpx">🔐</text>
+      <view class="text-bold mt-16" style="font-size:36rpx">管理员登录</view>
+      <view class="text-sm text-secondary mt-8">请输入管理密码以访问后台</view>
+    </view>
+    <input
+      class="password-input mt-24"
+      type="password"
+      placeholder="请输入管理密码"
+      value="{{adminPassword}}"
+      bindinput="onPasswordInput"
+    />
+    <button class="btn-primary mt-24" bindtap="onAdminLogin">登录</button>
+  </view>
+
+  <!-- 管理界面 -->
+  <view wx:else>
+    <!-- Tab 切换 -->
+    <view class="tab-bar">
+      <view
+        class="tab-item {{activeTab === 'list' ? 'active' : ''}}"
+        bindtap="onTabChange" data-tab="list"
+      >📋 食品列表</view>
+      <view
+        class="tab-item {{activeTab === 'add' ? 'active' : ''}}"
+        bindtap="onTabChange" data-tab="add"
+      >{{formMode === 'edit' ? '✏️ 编辑' : '➕ 新增'}}</view>
+      <view
+        class="tab-item {{activeTab === 'import' ? 'active' : ''}}"
+        bindtap="onTabChange" data-tab="import"
+      >📦 批量导入</view>
+    </view>
+
+    <!-- ========== 食品列表 Tab ========== -->
+    <view wx:if="{{activeTab === 'list'}}" class="tab-content">
+      <view class="search-bar card">
+        <input
+          class="search-input"
+          placeholder="搜索食品名称…"
+          value="{{searchKeyword}}"
+          bindinput="onSearchInput"
+        />
+      </view>
+
+      <view wx:for="{{foods}}" wx:key="_id" class="admin-food-item card flex-between">
+        <view class="flex-row flex-1">
+          <image src="{{item.image}}" class="admin-food-img img-round" mode="aspectFill"></image>
+          <view class="flex-1">
+            <view class="text-bold">{{item.name}}</view>
+            <view class="text-sm text-secondary">¥{{item.price}} | 🔥{{item.calories}} kcal</view>
+          </view>
+        </view>
+        <view class="admin-actions">
+          <text class="action-btn" bindtap="onEditFood" data-food="{{item}}">✏️</text>
+          <text class="action-btn" bindtap="onDeleteFood" data-food="{{item}}">🗑️</text>
+        </view>
+      </view>
+
+      <view wx:if="{{foods.length === 0}}" class="empty-state">
+        <text class="icon">📭</text>
+        <text>暂无食品数据</text>
+      </view>
+    </view>
+
+    <!-- ========== 新增/编辑 Tab ========== -->
+    <view wx:if="{{activeTab === 'add'}}" class="tab-content">
+      <view class="card">
+        <view class="text-bold mb-16">{{formMode === 'edit' ? '编辑食品' : '新增食品'}}</view>
+
+        <!-- 名称 -->
+        <view class="form-group">
+          <text class="form-label">名称 *</text>
+          <input class="form-input" placeholder="食品名称" value="{{form.name}}" bindinput="onFormField" data-field="name" />
+        </view>
+
+        <!-- 分类 -->
+        <view class="form-group">
+          <text class="form-label">分类 *</text>
+          <picker mode="selector" range="{{['主食','零食','水果','饮料','奶茶','沙拉','汤品']}}" range-key="name" bindchange="onFormField" data-field="category">
+            <view class="form-input">
+              {{form.category === 'staple' ? '主食' : form.category === 'snack' ? '零食' : form.category === 'fruit' ? '水果' : form.category === 'drink' ? '饮料' : form.category === 'milktea' ? '奶茶' : form.category === 'salad' ? '沙拉' : form.category === 'soup' ? '汤品' : '请选择'}}
+            </view>
+          </picker>
+        </view>
+
+        <!-- 价格 & 卡路里 -->
+        <view class="form-row">
+          <view class="form-group flex-1" style="margin-right:12rpx">
+            <text class="form-label">价格 (¥) *</text>
+            <input class="form-input" type="digit" placeholder="0.00" value="{{form.price}}" bindinput="onFormField" data-field="price" />
+          </view>
+          <view class="form-group flex-1" style="margin-left:12rpx">
+            <text class="form-label">卡路里 (kcal) *</text>
+            <input class="form-input" type="number" placeholder="如 350" value="{{form.calories}}" bindinput="onFormField" data-field="calories" />
+          </view>
+        </view>
+
+        <!-- 描述 -->
+        <view class="form-group">
+          <text class="form-label">描述</text>
+          <input class="form-input" placeholder="简短描述" value="{{form.desc}}" bindinput="onFormField" data-field="desc" />
+        </view>
+
+        <!-- 图片 -->
+        <view class="form-group">
+          <text class="form-label">图片</text>
+          <view class="upload-area" bindtap="onChooseImage">
+            <image wx:if="{{form.image}}" src="{{form.image}}" class="upload-preview" mode="aspectFill"></image>
+            <view wx:else class="upload-placeholder">
+              <text style="font-size:48rpx">📷</text>
+              <text class="text-sm text-secondary">点击上传</text>
+            </view>
+          </view>
+          <view wx:if="{{uploading}}" class="text-sm text-secondary mt-8">上传中…</view>
+        </view>
+
+        <!-- 营养成分 -->
+        <view class="text-bold mt-24 mb-16">📊 营养成分 (每份)</view>
+        <view class="form-row">
+          <view class="form-group flex-1" style="margin-right:8rpx">
+            <text class="form-label-sm">蛋白质(g)</text>
+            <input class="form-input" type="digit" placeholder="0" value="{{form.nutrition.protein}}" bindinput="onNutritionField" data-field="protein" />
+          </view>
+          <view class="form-group flex-1" style="margin:0 4rpx">
+            <text class="form-label-sm">脂肪(g)</text>
+            <input class="form-input" type="digit" placeholder="0" value="{{form.nutrition.fat}}" bindinput="onNutritionField" data-field="fat" />
+          </view>
+          <view class="form-group flex-1" style="margin:0 4rpx">
+            <text class="form-label-sm">碳水(g)</text>
+            <input class="form-input" type="digit" placeholder="0" value="{{form.nutrition.carbs}}" bindinput="onNutritionField" data-field="carbs" />
+          </view>
+          <view class="form-group flex-1" style="margin-left:8rpx">
+            <text class="form-label-sm">纤维(g)</text>
+            <input class="form-input" type="digit" placeholder="0" value="{{form.nutrition.fiber}}" bindinput="onNutritionField" data-field="fiber" />
+          </view>
+        </view>
+
+        <!-- 制作步骤 -->
+        <view class="text-bold mt-24 mb-16">👨‍🍳 制作步骤</view>
+        <view wx:for="{{form.steps}}" wx:key="index" class="form-group flex-row" style="align-items:center">
+          <text class="step-num-sm">{{index + 1}}</text>
+          <input class="form-input flex-1" style="margin-left:8rpx" placeholder="步骤 {{index + 1}}…" value="{{item}}" bindinput="onStepInput" data-index="{{index}}" />
+          <text wx:if="{{form.steps.length > 1}}" class="action-btn" bindtap="removeStep" data-index="{{index}}" style="margin-left:8rpx">✕</text>
+        </view>
+        <button class="btn-secondary mt-8" bindtap="addStep" style="font-size:24rpx;padding:12rpx">+ 添加步骤</button>
+
+        <!-- 提交按钮 -->
+        <button class="btn-primary mt-32" bindtap="onSubmitForm">
+          {{formMode === 'edit' ? '保存修改' : '添加食品'}}
+        </button>
+        <button wx:if="{{formMode === 'edit'}}" class="btn-secondary mt-16" bindtap="resetForm">取消编辑</button>
+      </view>
+    </view>
+
+    <!-- ========== 批量导入 Tab ========== -->
+    <view wx:if="{{activeTab === 'import'}}" class="tab-content">
+      <view class="card">
+        <view class="text-bold mb-16">📦 批量 JSON 导入</view>
+        <view class="text-sm text-secondary mb-16">
+          粘贴 JSON 数组格式的食品数据，每项需含 name, category, price, calories, image 字段。
+        </view>
+        <textarea
+          class="json-input"
+          placeholder='[{"name":"红烧肉","category":"staple","price":38,"calories":550,"image":"https://..."}]'
+          value="{{jsonText}}"
+          bindinput="onJsonInput"
+          auto-height
+          maxlength="-1"
+        ></textarea>
+        <button class="btn-primary mt-24" bindtap="onBatchImport">开始导入</button>
+        <view wx:if="{{importResult}}" class="import-result mt-16">
+          <text>{{importResult}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

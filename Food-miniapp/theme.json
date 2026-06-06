@@ -1,0 +1,36 @@
+{
+  "light": {
+    "bg": "#fff2df",
+    "surface": "#fffaf2",
+    "surface2": "#ffeede",
+    "border": "#ffe3b6",
+    "text": "#6a3e1a",
+    "text2": "#aa612c",
+    "text3": "#c96f2e",
+    "accent": "#ffaa5e",
+    "accent2": "#f59e3e",
+    "cabinetBg": "#dbbd8c",
+    "cabinetInner": "#f7e5c2",
+    "btnBg": "#f59e3e",
+    "btnShadow": "#9b4819",
+    "cardBg": "#fef7e0",
+    "cardShadow": "#b97f48"
+  },
+  "dark": {
+    "bg": "#1a1410",
+    "surface": "#241c16",
+    "surface2": "#2d2219",
+    "border": "#3d2e20",
+    "text": "#e8d5c0",
+    "text2": "#c4a882",
+    "text3": "#9e7e5a",
+    "accent": "#d4853a",
+    "accent2": "#c07028",
+    "cabinetBg": "#4a3828",
+    "cabinetInner": "#3a2a1c",
+    "btnBg": "#d4853a",
+    "btnShadow": "#6b3010",
+    "cardBg": "#3a2a1c",
+    "cardShadow": "#2a1a0c"
+  }
+}

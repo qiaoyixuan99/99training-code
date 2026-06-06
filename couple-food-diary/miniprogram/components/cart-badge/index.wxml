@@ -1,0 +1,6 @@
+<view class="cart-badge" bindtap="onTap">
+  <text class="icon">🛒</text>
+  <view class="badge" wx:if="{{count > 0}}">
+    <text>{{count > 99 ? '99+' : count}}</text>
+  </view>
+</view>

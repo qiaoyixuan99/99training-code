@@ -1,0 +1,68 @@
+<view class="page-order">
+  <!-- 订单列表 -->
+  <view class="order-items">
+    <view
+      wx:for="{{orderItems}}"
+      wx:key="index"
+      class="order-item card"
+    >
+      <image src="{{item.image}}" class="order-img img-round" mode="aspectFill"></image>
+      <view class="flex-1">
+        <view class="text-bold">{{item.name}}</view>
+        <view class="flex-row mt-8">
+          <text wx:if="{{item.isDouble}}" class="tag">💑 情侣份</text>
+          <text class="text-sm text-secondary">x{{item.quantity}}</text>
+        </view>
+      </view>
+      <view class="text-right">
+        <text class="text-primary text-bold">¥{{item.itemTotal}}</text>
+        <view class="text-sm text-secondary">{{item.calories}} kcal</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 备注 -->
+  <view class="card">
+    <view class="text-bold mb-16">📝 备注</view>
+    <textarea
+      class="note-input"
+      placeholder="写下特殊要求，比如「少糖」「多加辣」…"
+      value="{{note}}"
+      bindinput="onNoteInput"
+      maxlength="200"
+      auto-height
+    ></textarea>
+  </view>
+
+  <!-- 订单汇总 -->
+  <view class="card">
+    <view class="text-bold mb-16">📋 订单汇总</view>
+    <view class="flex-between mt-8">
+      <text class="text-secondary">商品数量</text>
+      <text>{{orderItems.length}} 种</text>
+    </view>
+    <view class="flex-between mt-16">
+      <text class="text-secondary">订单总价</text>
+      <text class="text-primary text-bold" style="font-size:36rpx">¥{{totalPrice}}</text>
+    </view>
+    <view class="flex-between mt-16">
+      <text class="text-secondary">总卡路里</text>
+      <text class="text-bold">🔥 {{totalCalories}} kcal</text>
+    </view>
+  </view>
+
+  <!-- 底部提交 -->
+  <view class="bottom-bar safe-bottom">
+    <view class="flex-1 text-right" style="margin-right:24rpx">
+      <text class="text-bold" style="font-size:36rpx;color:var(--primary)">¥{{totalPrice}}</text>
+    </view>
+    <button class="btn-submit" bindtap="onSubmitOrder" loading="{{submitting}}">
+      💕 确认下单
+    </button>
+  </view>
+
+  <!-- 甜蜜动画 -->
+  <view wx:for="{{loveAnimations}}" wx:key="id" class="love-float" style="left:{{item.x}}rpx;bottom:{{item.y}}rpx">
+    <text>{{item.text}}</text>
+  </view>
+</view>

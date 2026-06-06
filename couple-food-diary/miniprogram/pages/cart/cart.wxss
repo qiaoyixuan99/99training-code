@@ -1,0 +1,133 @@
+.page-cart {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 140rpx;
+}
+
+/* 购物车项 */
+.cart-item {
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin: 12rpx 24rpx;
+}
+
+.cart-item-img {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  margin-right: 16rpx;
+  background: var(--primary-lighter);
+}
+
+.cart-item-info {
+  min-width: 0;
+}
+
+.double-toggle {
+  display: inline-block;
+  font-size: 22rpx;
+  color: var(--primary);
+  background: var(--primary-lighter);
+  padding: 4rpx 14rpx;
+  border-radius: 16rpx;
+}
+
+.cart-item-right {
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}
+
+.qty-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.qty-btn {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: var(--primary-lighter);
+  color: var(--primary-dark);
+  font-size: 28rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qty-num {
+  font-size: 28rpx;
+  font-weight: 600;
+  margin: 0 12rpx;
+  min-width: 40rpx;
+  text-align: center;
+}
+
+.remove-btn {
+  position: absolute;
+  bottom: 12rpx;
+  right: 12rpx;
+  font-size: 28rpx;
+  opacity: 0.5;
+  padding: 4rpx;
+}
+
+/* 底部结算栏 */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+
+.total-info {
+  text-align: right;
+  margin-right: 20rpx;
+}
+
+.total-info > view:first-child {
+  font-size: 36rpx;
+  color: var(--primary);
+}
+
+.btn-checkout {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #FFFFFF;
+  border: none;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  padding: 18rpx 40rpx;
+  line-height: 1.4;
+}
+
+.btn-checkout::after {
+  border: none;
+}
+
+.love-float {
+  position: fixed;
+  bottom: 200rpx;
+  z-index: 999;
+  animation: floatUp 1s ease-out forwards;
+  pointer-events: none;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(0.8); }
+  50% { opacity: 1; transform: translateY(-100rpx) scale(1.2); }
+  100% { opacity: 0; transform: translateY(-200rpx) scale(1); }
+}

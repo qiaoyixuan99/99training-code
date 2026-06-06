@@ -1,0 +1,182 @@
+.page-admin {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 40rpx;
+}
+
+/* 登录 */
+.login-card {
+  margin-top: 120rpx;
+  padding: 48rpx 32rpx;
+}
+
+.password-input {
+  width: 100%;
+  height: 88rpx;
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 24rpx;
+  font-size: 30rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Tab 切换 */
+.tab-bar {
+  display: flex;
+  background: #FFFFFF;
+  padding: 8rpx 24rpx;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  border-bottom: 3rpx solid transparent;
+  transition: all 0.3s;
+}
+
+.tab-item.active {
+  color: var(--primary);
+  font-weight: 600;
+  border-bottom-color: var(--primary);
+}
+
+.tab-content {
+  padding: 16rpx 0;
+}
+
+/* 搜索 */
+.search-bar .search-input {
+  width: 100%;
+  font-size: 28rpx;
+}
+
+/* 食品管理列表 */
+.admin-food-item {
+  display: flex;
+  align-items: center;
+  margin: 8rpx 24rpx;
+}
+
+.admin-food-img {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: var(--radius-sm);
+  margin-right: 16rpx;
+  flex-shrink: 0;
+  background: var(--primary-lighter);
+}
+
+.admin-actions {
+  display: flex;
+  gap: 16rpx;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  font-size: 32rpx;
+  padding: 8rpx;
+}
+
+/* 表单 */
+.form-group {
+  margin-bottom: 16rpx;
+}
+
+.form-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.form-label {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8rpx;
+}
+
+.form-label-sm {
+  display: block;
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  margin-bottom: 6rpx;
+}
+
+.form-input {
+  width: 100%;
+  height: 72rpx;
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 16rpx;
+  font-size: 26rpx;
+  background: #FFF;
+  box-sizing: border-box;
+}
+
+/* 上传区域 */
+.upload-area {
+  width: 200rpx;
+  height: 200rpx;
+  border: 2rpx dashed var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFF8FA;
+}
+
+.upload-placeholder {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-preview {
+  width: 100%;
+  height: 100%;
+}
+
+/* 步骤编号 */
+.step-num-sm {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #FFF;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* JSON 输入 */
+.json-input {
+  width: 100%;
+  min-height: 300rpx;
+  background: #FFF8FA;
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16rpx;
+  font-size: 24rpx;
+  font-family: 'Courier New', monospace;
+  box-sizing: border-box;
+}
+
+.import-result {
+  padding: 16rpx;
+  background: var(--primary-lighter);
+  border-radius: var(--radius-sm);
+  font-size: 26rpx;
+  color: var(--primary-dark);
+  text-align: center;
+}

@@ -1,0 +1,13 @@
+{
+  "light": {
+    "primary": "#FF7EB3",
+    "primaryLight": "#FFB3CC",
+    "primaryLighter": "#FFE0EC",
+    "primaryDark": "#E8609A",
+    "bg": "#FFF0F5",
+    "bgCard": "#FFFFFF",
+    "textPrimary": "#333333",
+    "textSecondary": "#888888",
+    "border": "#F5E0E8"
+  }
+}

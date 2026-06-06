@@ -1,0 +1,46 @@
+<view class="page-category">
+  <!-- 排序栏 -->
+  <view class="sort-bar">
+    <view class="sort-item {{sortType === 'default' ? 'active' : ''}}" bindtap="onSortChange" data-type="default">
+      <text>综合</text>
+    </view>
+    <view class="sort-item {{sortType === 'price-asc' ? 'active' : sortType === 'price-desc' ? 'active' : ''}}" bindtap="onSortChange" data-type="{{sortType === 'price-asc' ? 'price-desc' : 'price-asc'}}">
+      <text>价格</text>
+      <text class="sort-arrow">{{sortType === 'price-desc' ? '↓' : '↑'}}</text>
+    </view>
+    <view class="sort-item {{sortType === 'cal-asc' ? 'active' : sortType === 'cal-desc' ? 'active' : ''}}" bindtap="onSortChange" data-type="{{sortType === 'cal-asc' ? 'cal-desc' : 'cal-asc'}}">
+      <text>卡路里</text>
+      <text class="sort-arrow">{{sortType === 'cal-desc' ? '↓' : '↑'}}</text>
+    </view>
+  </view>
+
+  <!-- 食品列表 -->
+  <view wx:if="{{foods.length > 0}}" class="food-grid">
+    <food-card
+      wx:for="{{foods}}"
+      wx:key="_id"
+      food="{{item}}"
+      bindtap="onFoodTap"
+      bindaddcart="onAddCart"
+    ></food-card>
+  </view>
+
+  <view wx:else class="empty-state">
+    <text class="icon">🍽️</text>
+    <text>该分类下暂无美食</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="load-more">
+    <text>正在加载… 💕</text>
+  </view>
+  <view wx:elif="{{!hasMore && foods.length > 0}}" class="load-more">
+    <text>— 全部美食都在这里啦 🎀 —</text>
+  </view>
+
+  <!-- 甜蜜动画 -->
+  <view wx:for="{{loveAnimations}}" wx:key="id" class="love-float" style="left:{{item.x}}rpx;bottom:{{item.y}}rpx">
+    <text>{{item.text}}</text>
+  </view>
+
+  <view class="safe-bottom" style="height:40rpx"></view>
+</view>

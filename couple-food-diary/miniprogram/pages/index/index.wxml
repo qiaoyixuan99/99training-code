@@ -1,0 +1,78 @@
+<!-- 首页 - 美食浏览 -->
+<view class="page-index">
+  <!-- 自定义导航栏 -->
+  <view class="nav-bar" style="padding-top:{{statusBarHeight}}px">
+    <view class="nav-content" style="height:{{navBarHeight}}px">
+      <view class="nav-title">
+        <text class="nav-title-text">💕 情侣美食记</text>
+      </view>
+      <cart-badge count="{{cartCount}}"></cart-badge>
+    </view>
+  </view>
+
+  <!-- 搜索栏 -->
+  <view class="search-bar card">
+    <text class="search-icon">🔍</text>
+    <input
+      class="search-input"
+      placeholder="搜索你想吃的美食…"
+      value="{{searchKeyword}}"
+      bindinput="onSearchInput"
+      confirm-type="search"
+    />
+  </view>
+
+  <!-- 分类标签栏 -->
+  <scroll-view class="category-scroll" scroll-x="true" enable-flex="true">
+    <view class="category-tag {{activeCategory === 'all' ? 'active' : ''}}"
+          bindtap="onCategoryTap" data-id="all">
+      <text class="cat-icon">🌟</text>
+      <text>全部</text>
+    </view>
+    <view
+      wx:for="{{categories}}"
+      wx:key="id"
+      class="category-tag {{activeCategory === item.id ? 'active' : ''}}"
+      bindtap="onCategoryTap"
+      data-id="{{item.id}}"
+    >
+      <text class="cat-icon">{{item.icon}}</text>
+      <text>{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <!-- 食品网格 -->
+  <view wx:if="{{filteredFoods.length > 0}}" class="food-grid">
+    <food-card
+      wx:for="{{filteredFoods}}"
+      wx:key="_id"
+      food="{{item}}"
+      bindtap="onFoodTap"
+      bindaddcart="onAddCart"
+      bindloveanim="onLoveAnim"
+    ></food-card>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:else class="empty-state">
+    <text class="icon">🍽️</text>
+    <text>还没有相关美食哦～</text>
+    <text class="text-sm" style="margin-top:8rpx">换个分类看看吧</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="load-more">
+    <text>正在为你准备美食… 💕</text>
+  </view>
+  <view wx:elif="{{!hasMore && filteredFoods.length > 0}}" class="load-more">
+    <text>— 已经到底啦 🎀 —</text>
+  </view>
+
+  <!-- 甜蜜动画层 -->
+  <view wx:for="{{loveAnimations}}" wx:key="id" class="love-float" style="left:{{item.x}}rpx;bottom:{{item.y}}rpx">
+    <text>{{item.text}}</text>
+  </view>
+
+  <!-- 底部安全距离 -->
+  <view class="safe-bottom" style="height:40rpx"></view>
+</view>

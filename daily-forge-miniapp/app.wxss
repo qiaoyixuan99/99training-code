@@ -4,5 +4,5 @@ page {
   font-size: 28rpx;
   line-height: 1.5;
   -webkit-tap-highlight-color: transparent;
-  background: #0f1117; /* 默认暗色背景，页面切换瞬间无闪烁 */
+  background: #0d0e12; /* 默认暗色背景，页面切换瞬间无闪烁 */
 }
