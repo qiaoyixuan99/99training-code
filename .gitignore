@@ -39,3 +39,7 @@ andrej-karpathy-skills/
 .env
 .env.local
 *.private.config.json
+
+# Auto-sync watcher runtime files
+auto-sync/.watcher_pid.json
+auto-sync/watcher.log
