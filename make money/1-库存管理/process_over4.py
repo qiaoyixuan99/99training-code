@@ -135,9 +135,11 @@ for info in inv_rows:
     formula = f"=AA{row_idx}*0.1+AB{row_idx}*0.1+AC{row_idx}*0.2+AD{row_idx}*0.3+AE{row_idx}*0.3"
     ws_inv.cell(row=row_idx, column=COL_SUM).value = formula
 
-    # Write grade to L column
+    # Write grade FORMULA to L column (so it auto-updates when Sum changes)
+    # IF(AF>4.5,"A", IF(AF>2.5,"B","C"))
+    grade_formula = f'=IF(AF{row_idx}>4.5,"A",IF(AF{row_idx}>2.5,"B","C"))'
     class_cell = ws_inv.cell(row=row_idx, column=COL_CLASS)
-    class_cell.value = grade
+    class_cell.value = grade_formula
 
     # Red fill if stock quantity < 2
     if qty < 2:
