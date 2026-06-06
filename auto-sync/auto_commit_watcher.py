@@ -32,8 +32,12 @@ from datetime import datetime
 from pathlib import Path
 
 # Windows GBK 编码兼容：强制 stdout 使用 UTF-8
-if sys.platform == "win32":
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+# 注意：pythonw 运行时没有 stdout，跳过重配置
+if sys.platform == "win32" and sys.stdout:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass  # pythonw 等无控制台环境会失败，忽略
 
 # ============================================================
 # 配置
@@ -69,7 +73,11 @@ def log(msg: str):
     """写日志"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     line = f"[{timestamp}] {msg}"
-    print(line)
+    # pythonw 无控制台窗口，print 会失败
+    try:
+        print(line)
+    except (OSError, IOError):
+        pass
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(line + "\n")
 
