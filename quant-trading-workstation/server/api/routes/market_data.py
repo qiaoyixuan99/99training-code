@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get("/kline/{symbol}")
 async def get_kline(
     symbol: str,
-    period: str = Query("daily", description="daily / weekly / monthly / 5m / 15m / 30m / 60m"),
+    period: str = Query("daily", description="daily / weekly / monthly / 5m / 15m / 30m / 60m / yearly"),
     limit: int = Query(500, ge=1, le=5000),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -25,8 +25,20 @@ async def get_kline(
     示例: GET /api/v1/market/kline/600000?period=daily&limit=100
     """
     try:
-        start = start_date or (datetime.now() - timedelta(days=limit * 2)).strftime("%Y%m%d")
-        end = end_date or datetime.now().strftime("%Y%m%d")
+        # 根据周期确定合适的日期范围
+        if not start_date:
+            period_days = {
+                '5m': 30, '15m': 60, '30m': 90, '60m': 180, '1m': 10,
+                'daily': limit * 3, '1d': limit * 3,
+                'weekly': limit * 7, '1w': limit * 7,
+                'monthly': limit * 31, '1M': limit * 31,
+                'yearly': 365 * 20, '1Y': 365 * 20,
+            }
+            days = period_days.get(period, limit * 2)
+            start = (datetime.now() - timedelta(days=days)).strftime('%Y%m%d')
+        else:
+            start = start_date
+        end = end_date or datetime.now().strftime('%Y%m%d')
 
         df = data_fetcher.get_kline(
             symbol=symbol,

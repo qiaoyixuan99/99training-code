@@ -32,6 +32,10 @@ export const chanApi = {
       params: { period, start_date: startDate, end_date: endDate },
     }),
 
+  /** 批量多周期分析 — 一次请求分析多个时段 */
+  batchAnalyze: (symbol: string, periods: string[]) =>
+    api.post(`/chan-theory/batch-analyze/${symbol}`, { periods }),
+
   quick: (symbol: string, period = '1d') =>
     api.get(`/chan-theory/quick/${symbol}`, { params: { period } }),
 

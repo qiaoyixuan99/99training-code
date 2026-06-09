@@ -61,7 +61,13 @@ class DataFetcher:
             self._cache[cache_key] = df
             return df
 
-        # 日线数据优先 Baostock（网络兼容性好），失败则回退 AKShare
+        # 年K数据：获取月K后聚合
+        if period in ('1Y', 'yearly'):
+            df = self._fetch_yearly_kline(symbol, start_date, end_date)
+            self._cache[cache_key] = df
+            return df
+
+        # 日线/周线/月线数据优先 Baostock（网络兼容性好），失败则回退 AKShare
         try:
             df = self._fetch_baostock_kline(symbol, period, start_date, end_date)
             self._cache[cache_key] = df
@@ -228,6 +234,64 @@ class DataFetcher:
             raise ValueError(f"未获取到 {symbol} 分时数据 (period={period})")
 
         return self._normalize_columns(df)
+
+    def _fetch_yearly_kline(
+        self, symbol: str, start_date: str, end_date: str
+    ) -> pd.DataFrame:
+        """获取年K线数据（通过月K聚合）"""
+        import numpy as np
+
+        # 确保获取足够长的月K数据（至少15年用于有效年K聚合）
+        from datetime import datetime, timedelta
+        extended_start = start_date
+        try:
+            start_dt = datetime.strptime(start_date, '%Y%m%d')
+            extended_dt = max(
+                datetime(2000, 1, 1),
+                start_dt - timedelta(days=365 * 10)
+            )
+            extended_start = extended_dt.strftime('%Y%m%d')
+        except (ValueError, TypeError):
+            extended_start = (datetime.now() - timedelta(days=365 * 20)).strftime('%Y%m%d')
+
+        # 先获取月K数据（使用单独的缓存键避免循环）
+        monthly_cache_key = f"{symbol}:monthly:{extended_start}:{end_date}"
+        if monthly_cache_key in self._cache:
+            monthly = self._cache[monthly_cache_key].copy()
+        else:
+            monthly = self.get_kline(
+                symbol=symbol, period='monthly',
+                start_date=extended_start, end_date=end_date,
+                use_cache=False,
+            )
+            self._cache[monthly_cache_key] = monthly
+
+        if monthly.empty:
+            raise ValueError(f"无法获取 {symbol} 的月K数据从而聚合年K")
+
+        # 按月聚合为年
+        monthly = monthly.copy()
+        monthly['year'] = monthly.index.year
+
+        yearly_rows = []
+        for year, group in monthly.groupby('year'):
+            yearly_rows.append({
+                'open': group['open'].iloc[0],
+                'high': group['high'].max(),
+                'low': group['low'].min(),
+                'close': group['close'].iloc[-1],
+                'volume': group['volume'].sum(),
+            })
+
+        result = pd.DataFrame(
+            yearly_rows,
+            index=pd.to_datetime([f"{y}-12-31" for y in sorted(monthly['year'].unique())])
+        ).sort_index()
+
+        if result.empty:
+            raise ValueError(f"{symbol} 年K聚合后为空")
+
+        return result[['open', 'high', 'low', 'close', 'volume']]
 
     def _normalize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """标准化列名 — 中文 → 英文"""

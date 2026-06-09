@@ -162,9 +162,66 @@ const KLineChart: React.FC<KLineChartProps> = ({
 
     candleSeries.setData(candleData);
 
-    // ── 缠论标注层 ──
+    // ── 缠论标注层：合并分型标记 + 买卖点标记 ──
+    const allMarkers: any[] = [];
 
-    // 中枢区域（半透明矩形）
+    // 分型标记（顶分型用箭头向下，底分型用箭头向上）
+    if (fractals.length > 0) {
+      fractals.forEach(f => {
+        if (f.index < data.length) {
+          const isBuy = buyPoints.some(bp => bp.index === f.index);
+          const isSell = sellPoints.some(sp => sp.index === f.index);
+          // 如果该位置同时是买卖点，不重复标记（买卖点优先级更高）
+          if (!isBuy && !isSell) {
+            allMarkers.push({
+              time: formatTime(data[f.index]),
+              position: f.type === 'top' ? 'aboveBar' : 'belowBar',
+              color: f.level === 'major'
+                ? (f.type === 'top' ? '#ff6666' : '#66ff66')
+                : f.level === 'medium'
+                ? (f.type === 'top' ? '#ff9999' : '#99ff99')
+                : 'rgba(150,150,150,0.5)',
+              shape: f.type === 'top' ? 'arrowDown' : 'arrowUp',
+              text: f.level === 'major' ? (f.type === 'top' ? '顶' : '底') : '',
+              size: f.level === 'major' ? 3 : f.level === 'medium' ? 2 : 1,
+            });
+          }
+        }
+      });
+    }
+
+    // 买卖点标记
+    buyPoints.forEach(bp => {
+      if (bp.index < data.length) {
+        allMarkers.push({
+          time: formatTime(data[bp.index]),
+          position: 'belowBar',
+          color: '#00ff00',
+          shape: 'arrowUp',
+          text: bp.type.replace('buy', '买'),
+          size: 3,
+        });
+      }
+    });
+
+    sellPoints.forEach(sp => {
+      if (sp.index < data.length) {
+        allMarkers.push({
+          time: formatTime(data[sp.index]),
+          position: 'aboveBar',
+          color: '#ff0000',
+          shape: 'arrowDown',
+          text: sp.type.replace('sell', '卖'),
+          size: 3,
+        });
+      }
+    });
+
+    if (allMarkers.length > 0) {
+      candleSeries.setMarkers(allMarkers);
+    }
+
+    // ── 中枢区域（半透明矩形）──
     if (centers.length > 0 && data.length > 0) {
       centers.forEach((c, ci) => {
         if (c.start_index < data.length) {
@@ -242,106 +299,6 @@ const KLineChart: React.FC<KLineChartProps> = ({
           ]);
         }
       });
-    }
-
-    // 分型标记
-    if (fractals.length > 0) {
-      const topFractals: { time: Time; position: 'aboveBar'; color: string; shape: 'arrowDown'; text: string; size: number }[] = [];
-      const bottomFractals: { time: Time; position: 'belowBar'; color: string; shape: 'arrowUp'; text: string; size: number }[] = [];
-
-      fractals.forEach(f => {
-        if (f.index < data.length) {
-          const t = formatTime(data[f.index]);
-          if (f.type === 'top') {
-            topFractals.push({
-              time: t,
-              position: 'aboveBar',
-              color: f.level === 'major' ? '#ff4444' : f.level === 'medium' ? '#ff8888' : '#ffaaaa',
-              shape: 'arrowDown',
-              text: f.level === 'major' ? '顶' : '',
-              size: f.level === 'major' ? 3 : f.level === 'medium' ? 2 : 1,
-            });
-          } else {
-            bottomFractals.push({
-              time: t,
-              position: 'belowBar',
-              color: f.level === 'major' ? '#44ff44' : f.level === 'medium' ? '#88ff88' : '#aaffaa',
-              shape: 'arrowUp',
-              text: f.level === 'major' ? '底' : '',
-              size: f.level === 'major' ? 3 : f.level === 'medium' ? 2 : 1,
-            });
-          }
-        }
-      });
-
-      if (topFractals.length > 0) {
-        candleSeries.setMarkers(topFractals);
-      }
-      if (bottomFractals.length > 0) {
-        // 合并标记
-        const allMarkers = [...candleSeries.markers?.() || []];
-        // 使用setMarkers会覆盖，所以需要合并
-        candleSeries.setMarkers([
-          ...(candleSeries.markers?.() || []),
-          ...topFractals,
-          ...bottomFractals,
-        ]);
-      }
-    }
-
-    // 买卖点标记
-    const allMarkers: any[] = [];
-
-    buyPoints.forEach(bp => {
-      if (bp.index < data.length) {
-        allMarkers.push({
-          time: formatTime(data[bp.index]),
-          position: 'belowBar',
-          color: '#00ff00',
-          shape: 'arrowUp',
-          text: bp.type.replace('buy', '买'),
-          size: 3,
-        });
-      }
-    });
-
-    sellPoints.forEach(sp => {
-      if (sp.index < data.length) {
-        allMarkers.push({
-          time: formatTime(data[sp.index]),
-          position: 'aboveBar',
-          color: '#ff0000',
-          shape: 'arrowDown',
-          text: sp.type.replace('sell', '卖'),
-          size: 3,
-        });
-      }
-    });
-
-    // 合并分型标记和买卖点标记
-    if (fractals.length > 0) {
-      fractals.forEach(f => {
-        if (f.index < data.length) {
-          const isBuy = buyPoints.some(bp => bp.index === f.index);
-          const isSell = sellPoints.some(sp => sp.index === f.index);
-          if (!isBuy && !isSell) {
-            allMarkers.push({
-              time: formatTime(data[f.index]),
-              position: f.type === 'top' ? 'aboveBar' : 'belowBar',
-              color: f.level === 'major'
-                ? (f.type === 'top' ? '#ff6666' : '#66ff66')
-                : 'rgba(150,150,150,0.5)',
-              shape: f.type === 'top' ? 'circle' : 'circle',
-              text: f.level === 'major' ? (f.type === 'top' ? 'T' : 'B') : '',
-              size: f.level === 'major' ? 2 : 1,
-            });
-          }
-        }
-      });
-    }
-
-    if (allMarkers.length > 0) {
-      candleSeries.setMarkers(allMarkers);
     }
 
     // ── 成交量 ──

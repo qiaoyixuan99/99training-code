@@ -2,6 +2,8 @@
 缠论分析 API 路由 — 完整实现
 提供分型/笔/线段/中枢/买卖点多维度分析接口
 """
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
@@ -10,6 +12,9 @@ from loguru import logger
 
 from core.data_engine.fetcher import data_fetcher
 from core.chan_engine.chan_analyzer import ChanAnalyzer
+
+# 线程池用于并行执行多个缠论分析
+_executor = ThreadPoolExecutor(max_workers=4)
 
 router = APIRouter()
 
@@ -182,15 +187,29 @@ async def analyze_chan_theory(
             '1d': 'daily', 'daily': 'daily',
             '1w': 'weekly', 'weekly': 'weekly',
             '1M': 'monthly', 'monthly': 'monthly',
+            '1Y': 'yearly', 'yearly': 'yearly',
         }
         fetch_period = period_map.get(period, period)
 
-        # 默认获取最近300根K线
+        # 根据周期确定日期范围和最大K线数
+        period_config = {
+            '5m':  {'days': 30,   'max_bars': 500},
+            '15m': {'days': 60,   'max_bars': 400},
+            '30m': {'days': 90,   'max_bars': 300},
+            '60m': {'days': 180,  'max_bars': 300},
+            '1d':  {'days': 365*3, 'max_bars': 300},
+            'daily': {'days': 365*3, 'max_bars': 300},
+            '1w':  {'days': 365*5, 'max_bars': 200},
+            'weekly': {'days': 365*5, 'max_bars': 200},
+            '1M':  {'days': 365*10, 'max_bars': 120},
+            'monthly': {'days': 365*10, 'max_bars': 120},
+            '1Y':  {'days': 365*20, 'max_bars': 30},
+            'yearly': {'days': 365*20, 'max_bars': 30},
+        }
+        config = period_config.get(period, {'days': 365*2, 'max_bars': 300})
+
         if not start_date:
-            if period in ('5m', '15m', '30m', '60m'):
-                start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
-            else:
-                start_date = (datetime.now() - timedelta(days=365 * 2)).strftime('%Y%m%d')
+            start_date = (datetime.now() - timedelta(days=config['days'])).strftime('%Y%m%d')
         if not end_date:
             end_date = datetime.now().strftime('%Y%m%d')
 
@@ -204,8 +223,8 @@ async def analyze_chan_theory(
         if df.empty:
             raise HTTPException(status_code=404, detail=f"未获取到 {symbol} 的K线数据")
 
-        # 限制K线数量（缠论分析需要适量数据）
-        max_bars = 500 if period in ('5m', '15m', '30m', '60m') else 300
+        # 限制K线数量
+        max_bars = config['max_bars']
         if len(df) > max_bars:
             df = df.tail(max_bars)
 
@@ -355,4 +374,127 @@ async def get_turning_points(
         raise
     except Exception as e:
         logger.error(f"获取拐点失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── 多周期批量分析 ──────────────────────────
+
+class BatchPeriodRequest(BaseModel):
+    periods: List[str] = ['5m', '30m', '1d', '1w', '1M', '1Y']
+
+
+@router.post("/batch-analyze/{symbol}")
+async def batch_analyze_chan(
+    symbol: str,
+    body: BatchPeriodRequest,
+):
+    """
+    批量多周期缠论分析 — 一次请求分析多个时段
+
+    解决前端多次请求的性能问题：
+    - 后端并行获取数据和分析
+    - 使用线程池避免阻塞
+
+    Args:
+        symbol: 股票代码
+        body.periods: 要分析的周期列表，如 ['5m','30m','1d','1w','1M','1Y']
+    """
+    try:
+        periods = body.periods
+
+        def _analyze_one(p: str) -> dict:
+            """同步执行单个周期的分析"""
+            try:
+                # 复制 analyze_chan_theory 的核心逻辑
+                period_map = {
+                    '1d': 'daily', 'daily': 'daily',
+                    '1w': 'weekly', 'weekly': 'weekly',
+                    '1M': 'monthly', 'monthly': 'monthly',
+                    '1Y': 'yearly', 'yearly': 'yearly',
+                }
+                fetch_period = period_map.get(p, p)
+
+                period_config = {
+                    '5m':  {'days': 30,   'max_bars': 500},
+                    '15m': {'days': 60,   'max_bars': 400},
+                    '30m': {'days': 90,   'max_bars': 300},
+                    '60m': {'days': 180,  'max_bars': 300},
+                    '1d':  {'days': 365*3, 'max_bars': 300},
+                    'daily': {'days': 365*3, 'max_bars': 300},
+                    '1w':  {'days': 365*5, 'max_bars': 200},
+                    'weekly': {'days': 365*5, 'max_bars': 200},
+                    '1M':  {'days': 365*10, 'max_bars': 120},
+                    'monthly': {'days': 365*10, 'max_bars': 120},
+                    '1Y':  {'days': 365*20, 'max_bars': 30},
+                    'yearly': {'days': 365*20, 'max_bars': 30},
+                }
+                config = period_config.get(p, {'days': 365*2, 'max_bars': 300})
+
+                start_date = (datetime.now() - timedelta(days=config['days'])).strftime('%Y%m%d')
+                end_date = datetime.now().strftime('%Y%m%d')
+
+                df = data_fetcher.get_kline(
+                    symbol=symbol, period=fetch_period,
+                    start_date=start_date, end_date=end_date,
+                )
+
+                if df.empty:
+                    return {'period': p, 'error': f'无数据', 'status': 'empty'}
+
+                if len(df) > config['max_bars']:
+                    df = df.tail(config['max_bars'])
+
+                analyzer = ChanAnalyzer(df, symbol=symbol, period=p)
+                result = analyzer.run_full_analysis()
+
+                return {
+                    'period': p,
+                    'status': 'ok',
+                    'data_points': result.data_points,
+                    'date_range': list(result.date_range),
+                    'fractals': result.fractals,
+                    'strokes': result.strokes,
+                    'segments': result.segments,
+                    'centers': result.centers,
+                    'buy_points': result.buy_points,
+                    'sell_points': result.sell_points,
+                    'global_analysis': result.global_analysis,
+                    'local_analysis': result.local_analysis,
+                    'turning_points': result.turning_points,
+                    'anomalies': result.anomalies,
+                    'signals': result.signals,
+                }
+            except Exception as e:
+                logger.warning(f"批量分析 {symbol} period={p} 失败: {e}")
+                return {'period': p, 'error': str(e), 'status': 'error'}
+
+        # 并行执行（最大4并发，避免对数据源造成压力）
+        loop = asyncio.get_event_loop()
+        tasks = [
+            loop.run_in_executor(_executor, _analyze_one, p)
+            for p in periods
+        ]
+        results = await asyncio.gather(*tasks)
+
+        # 汇总统计
+        ok_count = sum(1 for r in results if r.get('status') == 'ok')
+        error_count = sum(1 for r in results if r.get('status') == 'error')
+        empty_count = sum(1 for r in results if r.get('status') == 'empty')
+
+        logger.info(
+            f"批量缠论分析完成: {symbol} "
+            f"成功={ok_count} 失败={error_count} 无数据={empty_count}"
+        )
+
+        return {
+            'symbol': symbol,
+            'analyzed_periods': periods,
+            'ok_count': ok_count,
+            'error_count': error_count,
+            'empty_count': empty_count,
+            'results': results,
+        }
+
+    except Exception as e:
+        logger.error(f"批量缠论分析失败 {symbol}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

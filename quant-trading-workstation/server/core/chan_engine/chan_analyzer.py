@@ -122,6 +122,17 @@ class ChanAnalyzer:
         self._sell_points: List[BuySellPoint] = []
         self._df_macd: Optional[pd.DataFrame] = None
 
+    def _get_min_kline_count(self) -> int:
+        """根据周期返回笔的最小K线数"""
+        config = {
+            '5m': 5, '15m': 5, '30m': 5, '60m': 5, '1m': 5,
+            '1d': 4, 'daily': 4,
+            '1w': 3, 'weekly': 3,
+            '1M': 2, 'monthly': 2,
+            '1Y': 1, 'yearly': 1,
+        }
+        return config.get(self.period, 5)
+
     def run_full_analysis(self) -> ChanMultiDimResult:
         """执行完整分析流程"""
         # 1. 包含处理（用于辅助分型识别）并对齐到原始K线
@@ -130,8 +141,9 @@ class ChanAnalyzer:
         # 2. 顶底分型 — 在原始K线上检测（避免索引映射问题）
         self._fractals = detect_fractals(self.df)
 
-        # 3. 笔
-        self._strokes = build_strokes(self._fractals, self.df, min_kline_count=5)
+        # 3. 笔 — 不同周期使用不同的最小K线数
+        min_k = self._get_min_kline_count()
+        self._strokes = build_strokes(self._fractals, self.df, min_kline_count=min_k)
         self._strokes = validate_stroke_alternation(self._strokes)
 
         # 4. 线段
