@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantTrading Workstation — 量化交易工作站</title>
+<script src="/static/lightweight-charts.js"></script>
+<style>
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #1c2129;
+  --border: #30363d; --text: #e6edf3; --text2: #8b949e;
+  --red: #ef5350; --green: #26a69a; --blue: #58a6ff;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background:var(--bg); color:var(--text); height:100vh; display:flex; }
+
+/* 侧边栏 */
+.sidebar { width:200px; min-width:200px; background:var(--bg2); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; }
+.sidebar .logo { height:48px; display:flex; align-items:center; justify-content:center;
+  border-bottom:1px solid var(--border); font-weight:700; font-size:14px; color:var(--blue); gap:6px; }
+.sidebar .nav { flex:1; padding:8px; }
+.nav-item { padding:10px 12px; border-radius:6px; cursor:pointer; margin-bottom:2px;
+  font-size:13px; color:var(--text2); transition:all 0.15s; display:flex; align-items:center; gap:8px; }
+.nav-item:hover { background:var(--bg3); color:var(--text); }
+.nav-item.active { background:var(--blue); color:#fff; }
+.nav-item .icon { font-size:16px; width:20px; text-align:center; }
+
+/* 主区域 */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.toolbar { height:48px; min-height:48px; background:var(--bg2); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 16px; gap:12px; }
+.toolbar input { background:var(--bg); border:1px solid var(--border); color:var(--text);
+  padding:6px 12px; border-radius:6px; width:200px; font-size:13px; outline:none; }
+.toolbar input:focus { border-color:var(--blue); }
+.toolbar button { background:var(--bg3); border:1px solid var(--border); color:var(--text);
+  padding:6px 14px; border-radius:6px; cursor:pointer; font-size:13px; }
+.toolbar button:hover { border-color:var(--blue); }
+.toolbar button.primary { background:var(--blue); border-color:var(--blue); color:#fff; }
+.toolbar .badge { background:var(--bg3); border:1px solid var(--border); border-radius:4px;
+  padding:2px 8px; font-size:12px; color:var(--blue); }
+
+/* 实时状态 */
+.realtime-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+.realtime-dot.live { background:#26a69a; animation:pulse-dot 1.5s infinite; }
+.realtime-dot.stale { background:#f85149; }
+.realtime-dot.off { background:#8b949e; }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* 内容区 */
+.content { flex:1; padding:16px; overflow:auto; display:flex; gap:16px; }
+.panel-left { flex:1; display:flex; flex-direction:column; gap:12px; min-width:0; }
+.panel-right { width:280px; min-width:280px; display:flex; flex-direction:column; gap:12px; }
+
+/* 图表 — 双面板 */
+#chart-area { flex:1; display:flex; flex-direction:column; min-height:480px;
+  border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--bg); }
+#chart-main { flex:3; position:relative; min-height:280px; }
+#chart-macd { flex:1; position:relative; min-height:130px; border-top:1px solid var(--border); }
+#chart-legend { display:flex; gap:12px; padding:4px 12px; font-size:10px; color:var(--text2);
+  background:var(--bg2); border-top:1px solid var(--border); flex-wrap:wrap; }
+#chart-legend span { white-space:nowrap; }
+
+.card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:16px; }
+.card-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:12px;
+  padding-bottom:8px; border-bottom:1px solid var(--border); display:flex;
+  justify-content:space-between; align-items:center; }
+
+/* 快捷入口 */
+.quick-btns { display:flex; flex-wrap:wrap; gap:8px; }
+.quick-btn { background:var(--bg3); border:1px solid var(--border); color:var(--text);
+  padding:8px 14px; border-radius:6px; cursor:pointer; font-size:13px; transition:all 0.15s; }
+.quick-btn:hover { border-color:var(--blue); background:#1c3a5c; }
+
+/* 行情数据 */
+.info-row { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; color:var(--text2); }
+.info-row .val { color:var(--text); font-weight:500; }
+.info-row .up { color:var(--red); }
+.info-row .down { color:var(--green); }
+
+/* 自选股 */
+.wl-item { padding:8px 10px; border-radius:4px; cursor:pointer; font-size:13px;
+  display:flex; justify-content:space-between; transition:all 0.1s; }
+.wl-item:hover { background:var(--bg3); }
+.wl-item.selected { background:#1c3a5c; border:1px solid var(--blue); }
+.wl-item .remove { color:var(--text2); cursor:pointer; opacity:0; transition:opacity 0.1s; }
+.wl-item:hover .remove { opacity:1; }
+
+/* 空状态 */
+.empty { text-align:center; color:var(--text2); padding:32px 16px; font-size:13px; }
+.spinner { display:flex; align-items:center; justify-content:center; height:100%; }
+.spinner::after { content:''; width:32px; height:32px; border:3px solid var(--border);
+  border-top-color:var(--blue); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.price-big { font-size:22px; font-weight:700; }
+</style>
+</head>
+<body>
+
+<!-- 侧边栏 -->
+<div class="sidebar">
+  <div class="logo">⚡ Quant Workstation</div>
+  <div class="nav">
+    <div class="nav-item active" data-page="dashboard">
+      <span class="icon">📈</span>行情看盘
+    </div>
+    <div class="nav-item" data-page="screener">
+      <span class="icon">🔍</span>智能选股
+    </div>
+    <div class="nav-item" data-page="backtest">
+      <span class="icon">⚡</span>策略回测
+    </div>
+    <div class="nav-item" data-page="strategy">
+      <span class="icon">✏️</span>策略编辑器
+    </div>
+    <div class="nav-item" data-page="chan">
+      <span class="icon">🧠</span>缠论分析
+    </div>
+    <div class="nav-item" data-page="timing">
+      <span class="icon">🎯</span>大盘择时
+    </div>
+    <div class="nav-item" data-page="settings">
+      <span class="icon">⚙️</span>系统设置
+    </div>
+  </div>
+</div>
+
+<!-- 主区域 -->
+<div class="main">
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <input type="text" id="symbol-input" placeholder="输入股票代码, 如 600519" />
+    <button class="primary" onclick="loadStock()">查看</button>
+    <button onclick="addWatchlist()">⭐ 加自选</button>
+    <select id="period-select" onchange="loadStock()" style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:6px; font-size:13px;">
+      <option value="daily">日K</option>
+      <option value="weekly">周K</option>
+      <option value="monthly">月K</option>
+    </select>
+    <span class="badge" id="stock-info"></span>
+    <span style="flex:1"></span>
+    <span id="rt-indicator" style="font-size:12px; color:var(--text2);">
+      <span class="realtime-dot off"></span>实时: 关闭
+    </span>
+    <span style="font-size:12px; color:var(--text2);">API: 127.0.0.1:8001</span>
+  </div>
+
+  <!-- 内容区 -->
+  <div class="content">
+    <div class="panel-left">
+      <!-- 快捷入口 (无选中股票时显示) -->
+      <div class="card" id="quick-card">
+        <div class="card-title">📈 股票快捷入口</div>
+        <div class="quick-btns" id="quick-btns"></div>
+      </div>
+      <!-- K线图 + MACD 双面板 -->
+      <div id="chart-area">
+        <div id="chart-main"></div>
+        <div id="chart-macd"></div>
+        <div id="chart-legend">
+          <span style="color:#f0c060">━━ MA5</span>
+          <span style="color:#ff9800">━━ MA10</span>
+          <span style="color:#e040fb">━━ MA20</span>
+          <span style="color:#448aff">━━ MA60</span>
+          <span style="color:#4fc3f7">╌╌ BB上/下</span>
+          <span style="color:#b0bec5">╌╌ BB中</span>
+          <span> | </span>
+          <span style="color:#ffeb3b">━━ DIF</span>
+          <span style="color:#ff9800">━━ DEA</span>
+          <span style="color:#ef5350">━ MACD↑</span>
+          <span style="color:#26a69a">━ MACD↓</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel-right">
+      <!-- 行情数据 -->
+      <div class="card">
+        <div class="card-title">📊 行情数据 <span id="data-date" style="font-size:12px;color:var(--text2)"></span></div>
+        <div id="quote-data">
+          <div class="empty">输入股票代码查看行情</div>
+        </div>
+      </div>
+      <!-- 自选股 -->
+      <div class="card" style="flex:1; overflow:auto;">
+        <div class="card-title">⭐ 自选股 <span id="wl-count" style="font-size:12px;color:var(--text2)">0</span></div>
+        <div id="watchlist-container">
+          <div class="empty">暂无自选股</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════
+const API = 'http://127.0.0.1:8001/api/v1';
+let currentSymbol = null;
+let currentPeriod = 'daily';
+let currentData = [];
+
+// Main chart
+let chartMain = null;
+let candleSeries = null;
+let volumeSeries = null;
+let ma5Line = null, ma10Line = null, ma20Line = null, ma60Line = null;
+let bbUpperLine = null, bbMiddleLine = null, bbLowerLine = null;
+
+// MACD chart
+let chartMACD = null;
+let macdHistSeries = null;
+let macdDifLine = null;
+let macdDeaLine = null;
+
+// Real-time
+let realtimeTimer = null;
+let realtimeActive = false;
+
+let watchlist = JSON.parse(localStorage.getItem('qt_watchlist') || '[]');
+
+const QUICK_STOCKS = [
+  '000001','600519','000858','300750','600036','002594','601318','600276',
+  '600030','601166','000333','600900','601012','002415','603259','688981',
+];
+
+// ═══════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════
+function init() {
+  renderQuickBtns();
+  renderWatchlist();
+  // BugFix: defer initCharts until after flexbox layout is computed.
+  // At DOMContentLoaded, chart containers may have clientWidth/clientHeight = 0.
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      initCharts();
+    });
+  });
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+      el.classList.add('active');
+    });
+  });
+  document.getElementById('symbol-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') loadStock();
+  });
+}
+window.addEventListener('DOMContentLoaded', init);
+
+// ═══════════════════════════════════════════
+// Chart Init — 双面板同步
+// ═══════════════════════════════════════════
+function initCharts() {
+  if (typeof LightweightCharts === 'undefined' || typeof LightweightCharts.createChart === 'undefined') {
+    const el = document.getElementById('chart-main');
+    if (el) el.innerHTML = '<div class="empty">⚠️ 图表库加载失败<br><small>请检查网络连接</small></div>';
+    return;
+  }
+
+  const mainEl = document.getElementById('chart-main');
+  const macdEl = document.getElementById('chart-macd');
+  if (!mainEl || !macdEl) return;
+
+  // 确保容器有实际尺寸
+  const w = mainEl.clientWidth || 800;
+  const h = Math.max(280, mainEl.clientHeight || 400);
+
+  // ── 销毁旧图表（幂等性保证）──
+  if (chartMain) { try { chartMain.remove(); } catch(e) {} chartMain = null; }
+  if (chartMACD) { try { chartMACD.remove(); } catch(e) {} chartMACD = null; }
+  // 重置所有 series 引用
+  candleSeries = volumeSeries = null;
+  ma5Line = ma10Line = ma20Line = ma60Line = null;
+  bbUpperLine = bbMiddleLine = bbLowerLine = null;
+  macdHistSeries = macdDifLine = macdDeaLine = null;
+
+  // ── 主图 ──
+  chartMain = LightweightCharts.createChart(mainEl, {
+    layout: { background:{color:'#0d1117'}, textColor:'#8b949e' },
+    grid: { vertLines:{color:'#1c2129'}, horzLines:{color:'#1c2129'} },
+    crosshair: { mode:0 },
+    rightPriceScale: { borderColor:'#30363d', scaleMargins:{top:0.05, bottom:0.25} },
+    timeScale: { borderColor:'#30363d', timeVisible:true },
+    width: w,
+    height: h,
+  });
+
+  candleSeries = chartMain.addCandlestickSeries({
+    upColor:'#ef5350', downColor:'#26a69a',
+    borderUpColor:'#ef5350', borderDownColor:'#26a69a',
+    wickUpColor:'#ef5350', wickDownColor:'#26a69a',
+  });
+
+  volumeSeries = chartMain.addHistogramSeries({
+    priceFormat:{type:'volume'}, priceScaleId:'volume',
+  });
+  volumeSeries.priceScale().applyOptions({ scaleMargins:{top:0.8, bottom:0} });
+
+  // MA 线
+  ma5Line  = chartMain.addLineSeries({ color:'#f0c060', lineWidth:1, priceScaleId:'right', lastValueVisible:false });
+  ma10Line = chartMain.addLineSeries({ color:'#ff9800', lineWidth:1, priceScaleId:'right', lastValueVisible:false });
+  ma20Line = chartMain.addLineSeries({ color:'#e040fb', lineWidth:1, priceScaleId:'right', lastValueVisible:false });
+  ma60Line = chartMain.addLineSeries({ color:'#448aff', lineWidth:1, priceScaleId:'right', lastValueVisible:false });
+
+  // Bollinger Bands
+  bbUpperLine  = chartMain.addLineSeries({ color:'#4fc3f7', lineWidth:1, lineStyle:1, priceScaleId:'right', lastValueVisible:false });
+  bbMiddleLine = chartMain.addLineSeries({ color:'#b0bec5', lineWidth:1, lineStyle:2, priceScaleId:'right', lastValueVisible:false });
+  bbLowerLine  = chartMain.addLineSeries({ color:'#4fc3f7', lineWidth:1, lineStyle:1, priceScaleId:'right', lastValueVisible:false });
+
+  // ── MACD 副图 ──
+  chartMACD = LightweightCharts.createChart(macdEl, {
+    layout: { background:{color:'#0d1117'}, textColor:'#8b949e' },
+    grid: { vertLines:{color:'#1c2129'}, horzLines:{color:'#1c2129'} },
+    crosshair: { mode:0 },
+    rightPriceScale: { borderColor:'#30363d' },
+    timeScale: { borderColor:'#30363d', timeVisible:false },
+    width: macdEl.clientWidth || 800,
+    height: Math.max(130, macdEl.clientHeight || 200),
+  });
+
+  macdHistSeries = chartMACD.addHistogramSeries({ priceFormat:{type:'volume'} });
+  macdDifLine = chartMACD.addLineSeries({ color:'#ffeb3b', lineWidth:1, lastValueVisible:false });
+  macdDeaLine = chartMACD.addLineSeries({ color:'#ff9800', lineWidth:1, lastValueVisible:false });
+
+  // 同步时间轴（仅主图 → 副图单向，避免回调循环）
+  chartMain.timeScale().subscribeVisibleTimeRangeChange(function(range) {
+    if (range && chartMACD) chartMACD.timeScale().setVisibleRange(range);
+  });
+}
+
+var resizeTimer = null;
+window.addEventListener('resize', function() {
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    var mainEl = document.getElementById('chart-main');
+    var macdEl = document.getElementById('chart-macd');
+    if (chartMain && mainEl) chartMain.applyOptions({ width: mainEl.clientWidth, height: Math.max(280, mainEl.clientHeight) });
+    if (chartMACD && macdEl) chartMACD.applyOptions({ width: macdEl.clientWidth, height: Math.max(130, macdEl.clientHeight) });
+  }, 100);
+});
+
+// ═══════════════════════════════════════════
+// 技术指标 — 业界标准算法
+// ═══════════════════════════════════════════
+
+/** SMA(n) = (P1+P2+...+Pn)/n — 滑动窗口增量计算 */
+function calcSMA(data, period) {
+  const r = new Array(data.length).fill(null);
+  if (data.length < period) return r;
+  let sum = 0;
+  for (let i = 0; i < period; i++) sum += data[i].close;
+  r[period - 1] = sum / period;
+  for (let i = period; i < data.length; i++) {
+    sum += data[i].close - data[i - period].close;
+    r[i] = sum / period;
+  }
+  return r;
+}
+
+/** EMA(n) — α=2/(n+1), 起始用SMA种子 */
+function calcEMA(data, period) {
+  const r = new Array(data.length).fill(null);
+  if (data.length < period) return r;
+  const alpha = 2 / (period + 1);
+  let sum = 0;
+  for (let i = 0; i < period; i++) sum += data[i].close;
+  r[period - 1] = sum / period;
+  for (let i = period; i < data.length; i++) {
+    r[i] = alpha * data[i].close + (1 - alpha) * r[i - 1];
+  }
+  return r;
+}
+
+/** EMA(values) — 基于已有数组 (用于MACD-DEA)，起始用SMA种子 */
+function calcEMAFromValues(values, period, startIdx) {
+  const r = new Array(values.length).fill(null);
+  // 找到第一个有 period 个非 null 值的位置，用 SMA 做种子
+  let seedStart = startIdx || 0;
+  while (seedStart < values.length && values[seedStart] === null) seedStart++;
+  let seedEnd = seedStart, validCount = 0, seedSum = 0;
+  while (seedEnd < values.length && validCount < period) {
+    if (values[seedEnd] !== null) { seedSum += values[seedEnd]; validCount++; }
+    seedEnd++;
+  }
+  if (validCount < period) return r;
+  const seedIdx = seedEnd - 1;
+  const alpha = 2 / (period + 1);
+  r[seedIdx] = seedSum / period;
+  for (let i = seedIdx + 1; i < values.length; i++) {
+    if (values[i] !== null) r[i] = alpha * values[i] + (1 - alpha) * r[i - 1];
+    else r[i] = r[i - 1];
+  }
+  return r;
+}
+
+/** Bollinger Bands — 中轨=SMA(20), 上下=中轨±2σ */
+function calcBollinger(data, period, multiplier) {
+  period = period || 20; multiplier = multiplier || 2;
+  const middle = calcSMA(data, period);
+  const upper = new Array(data.length).fill(null);
+  const lower = new Array(data.length).fill(null);
+  for (let i = period - 1; i < data.length; i++) {
+    if (middle[i] == null || isNaN(middle[i])) continue;
+    let sumSq = 0;
+    for (let j = 0; j < period; j++) {
+      var diff = data[i - j].close - middle[i];
+      sumSq += diff * diff;
+    }
+    const std = Math.sqrt(sumSq / period);
+    upper[i] = middle[i] + multiplier * std;
+    lower[i] = middle[i] - multiplier * std;
+  }
+  return { upper, middle, lower };
+}
+
+/** MACD(12,26,9) — DIF=EMA12-EMA26, DEA=EMA(DIF,9), 柱=2*(DIF-DEA) */
+function calcMACD(data) {
+  const ema12 = calcEMA(data, 12);
+  const ema26 = calcEMA(data, 26);
+  const dif = new Array(data.length).fill(null);
+  for (let i = 0; i < data.length; i++) {
+    if (ema12[i] !== null && ema26[i] !== null) dif[i] = ema12[i] - ema26[i];
+  }
+  const dea = calcEMAFromValues(dif, 9, 25);
+  const macd = new Array(data.length).fill(null);
+  for (let i = 0; i < data.length; i++) {
+    if (dif[i] !== null && dea[i] !== null) macd[i] = 2 * (dif[i] - dea[i]);
+  }
+  return { dif, dea, macd };
+}
+
+// ═══════════════════════════════════════════
+// Data Loading
+// ═══════════════════════════════════════════
+async function loadStock(symbol) {
+  symbol = symbol || document.getElementById('symbol-input').value.trim();
+  if (!symbol) return;
+  currentSymbol = symbol;
+  currentPeriod = document.getElementById('period-select').value;
+  document.getElementById('symbol-input').value = symbol;
+  document.getElementById('stock-info').textContent = '📌 ' + symbol;
+
+  // 如果图表未初始化，重试
+  if (!chartMain || !candleSeries) {
+    initCharts();
+  }
+  if (!chartMain || !candleSeries) {
+    alert('图表库未加载，请检查网络后刷新页面 (Ctrl+Shift+R)');
+    return;
+  }
+
+  try {
+    var res = await fetch(API + '/market/kline/' + symbol + '?period=' + currentPeriod + '&limit=300');
+    if (!res.ok) throw new Error(await res.text());
+    var json = await res.json();
+    if (!json.data || json.data.length === 0) {
+      alert('未获取到 ' + symbol + ' 的数据，可能已退市或停牌');
+      return;
+    }
+    currentData = json.data;
+    renderAll(json.data);
+    document.getElementById('quick-card').style.display = 'none';
+    startRealtime();
+  } catch(e) {
+    alert('加载失败: ' + e.message);
+    console.error('loadStock error:', e);
+  }
+}
+
+function toLineData(arr, data) {
+  var out = [];
+  for (var i = 0; i < arr.length; i++) {
+    var v = arr[i];
+    if (v == null || isNaN(v) || !isFinite(v)) continue;
+    // 保留原始精度，不做 toFixed 截断
+    out.push({ time: data[i].date, value: v });
+  }
+  return out;
+}
+
+function renderAll(data) {
+  if (!data || data.length === 0) {
+    console.warn('renderAll: no data');
+    return;
+  }
+  if (!chartMain || !candleSeries) {
+    throw new Error('图表未初始化，请刷新页面后重试');
+  }
+
+  try {
+    // 计算所有指标
+    var ma5  = calcSMA(data, 5);
+    var ma10 = calcSMA(data, 10);
+    var ma20 = calcSMA(data, 20);
+    var ma60 = calcSMA(data, 60);
+    var bb   = calcBollinger(data, 20, 2);
+    var macd = calcMACD(data);
+
+    // 主图 K线 + 成交量
+    candleSeries.setData(data.map(function(d) {
+      return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
+    }));
+    volumeSeries.setData(data.map(function(d, i) {
+      return {
+        time: d.date, value: d.volume,
+        color: i > 0 && d.close >= data[i-1].close ? 'rgba(239,83,80,0.4)' : 'rgba(38,166,154,0.4)',
+      };
+    }));
+
+    // MA 线 (null-safe)
+    if (ma5Line)  ma5Line.setData(toLineData(ma5, data));
+    if (ma10Line) ma10Line.setData(toLineData(ma10, data));
+    if (ma20Line) ma20Line.setData(toLineData(ma20, data));
+    if (ma60Line) ma60Line.setData(toLineData(ma60, data));
+
+    // Bollinger Bands
+    if (bbUpperLine)  bbUpperLine.setData(toLineData(bb.upper, data));
+    if (bbMiddleLine) bbMiddleLine.setData(toLineData(bb.middle, data));
+    if (bbLowerLine)  bbLowerLine.setData(toLineData(bb.lower, data));
+
+    chartMain.timeScale().fitContent();
+
+    // MACD 副图
+    if (chartMACD && macdHistSeries && macdDifLine && macdDeaLine) {
+      macdHistSeries.setData(data.map(function(d, i) {
+        return {
+          time: d.date,
+          value: macd.macd[i] != null && isFinite(macd.macd[i]) ? +macd.macd[i].toFixed(4) : 0,
+          color: macd.macd[i] != null && macd.macd[i] >= 0 ? 'rgba(239,83,80,0.6)' : 'rgba(38,166,154,0.6)',
+        };
+      }));
+      macdDifLine.setData(toLineData(macd.dif, data));
+      macdDeaLine.setData(toLineData(macd.dea, data));
+      chartMACD.timeScale().fitContent();
+    }
+
+    renderQuote(data);
+  } catch (err) {
+    console.error('renderAll error:', err);
+    throw new Error('图表渲染失败: ' + err.message);
+  }
+}
+
+function renderQuote(data) {
+  if (!data || data.length === 0) return;
+  const last = data[data.length-1];
+  const prev = data.length > 1 ? data[data.length-2] : last;
+  const change = last.close - prev.close;
+  const pct = (change / prev.close * 100);
+  const cls = change >= 0 ? 'up' : 'down';
+  const s = change >= 0 ? '+' : '';
+
+  document.getElementById('data-date').textContent = last.date;
+  document.getElementById('quote-data').innerHTML =
+    '<div class="info-row"><span>收盘价</span><span class="price-big">' + last.close.toFixed(2) + '</span></div>' +
+    '<div class="info-row"><span>涨跌</span><span class="' + cls + '">' + s + change.toFixed(2) + ' (' + s + pct.toFixed(2) + '%)</span></div>' +
+    '<div class="info-row"><span>开盘</span><span class="val">' + last.open.toFixed(2) + '</span></div>' +
+    '<div class="info-row"><span>最高</span><span class="up">' + last.high.toFixed(2) + '</span></div>' +
+    '<div class="info-row"><span>最低</span><span class="down">' + last.low.toFixed(2) + '</span></div>' +
+    '<div class="info-row"><span>成交量</span><span class="val">' + (last.volume/10000).toFixed(0) + '万手</span></div>';
+}
+
+// ═══════════════════════════════════════════
+// 实时行情轮询
+// ═══════════════════════════════════════════
+function isTradingHours() {
+  const now = new Date();
+  const day = now.getDay();
+  if (day === 0 || day === 6) return false;
+  const t = now.getHours() * 100 + now.getMinutes();
+  return t >= 930 && t <= 1505;
+}
+
+function updateRtIndicator(status) {
+  var labels = { live: '实时: 在线', stale: '实时: 已收盘', off: '实时: 关闭' };
+  document.getElementById('rt-indicator').innerHTML = '<span class="realtime-dot ' + status + '"></span>' + labels[status];
+}
+
+function startRealtime() {
+  stopRealtime();
+  realtimeActive = true;
+  updateRtIndicator('live');
+  pollRealtime();
+  realtimeTimer = setInterval(function() {
+    if (isTradingHours()) { updateRtIndicator('live'); pollRealtime(); }
+    else { updateRtIndicator('stale'); }
+  }, 5000);
+}
+
+function stopRealtime() {
+  realtimeActive = false;
+  if (realtimeTimer) { clearInterval(realtimeTimer); realtimeTimer = null; }
+  updateRtIndicator('off');
+}
+
+async function pollRealtime() {
+  if (!currentSymbol || !realtimeActive) return;
+  try {
+    var res = await fetch(API + '/market/realtime/' + currentSymbol);
+    if (!res.ok) return;
+    var rt = await res.json();
+    if (!rt || rt.available === false) return;
+    var last = currentData.length > 0 ? currentData[currentData.length-1] : null;
+    var prev = currentData.length > 1 ? currentData[currentData.length-2] : last;
+    if (!last || !prev) return;
+    var price = rt.price || rt.close;
+    var yclose = rt.yesterday_close || prev.close;
+    var chg = price - yclose;
+    var chgPct = (chg / yclose * 100);
+    var cls = chg >= 0 ? 'up' : 'down';
+    var sgn = chg >= 0 ? '+' : '';
+    document.getElementById('data-date').textContent = (rt.date || last.date) + ' ' + (rt.time || '');
+    document.getElementById('quote-data').innerHTML =
+      '<div class="info-row"><span>最新价</span><span class="price-big">' + price.toFixed(2) + '</span></div>' +
+      '<div class="info-row"><span>涨跌</span><span class="' + cls + '">' + sgn + chg.toFixed(2) + ' (' + sgn + chgPct.toFixed(2) + '%)</span></div>' +
+      '<div class="info-row"><span>开盘</span><span class="val">' + (rt.open || last.open).toFixed(2) + '</span></div>' +
+      '<div class="info-row"><span>最高</span><span class="up">' + (rt.high || last.high).toFixed(2) + '</span></div>' +
+      '<div class="info-row"><span>最低</span><span class="down">' + (rt.low || last.low).toFixed(2) + '</span></div>' +
+      '<div class="info-row"><span>成交量</span><span class="val">' + ((rt.volume || last.volume)/10000).toFixed(0) + '万手</span></div>' +
+      '<div class="info-row"><span>数据源</span><span class="val" style="font-size:10px;">' + (rt.source || 'eod') + '</span></div>';
+  } catch(e) { /* 静默 */ }
+}
+
+// ═══════════════════════════════════════════
+// Watchlist
+// ═══════════════════════════════════════════
+function addWatchlist(symbol) {
+  symbol = symbol || currentSymbol;
+  if (!symbol) return;
+  if (watchlist.find(function(w) { return w.symbol === symbol; })) return;
+  watchlist.push({ symbol: symbol, name: '', addedAt: new Date().toISOString() });
+  saveWatchlist();
+}
+
+function removeWatchlist(symbol) {
+  watchlist = watchlist.filter(function(w) { return w.symbol !== symbol; });
+  saveWatchlist();
+}
+
+function saveWatchlist() {
+  localStorage.setItem('qt_watchlist', JSON.stringify(watchlist));
+  renderWatchlist();
+}
+
+function renderWatchlist() {
+  document.getElementById('wl-count').textContent = watchlist.length;
+  var container = document.getElementById('watchlist-container');
+  if (watchlist.length === 0) { container.innerHTML = '<div class="empty">暂无自选股</div>'; return; }
+  container.innerHTML = watchlist.map(function(w) {
+    return '<div class="wl-item' + (currentSymbol === w.symbol ? ' selected' : '') + '" onclick="loadStock(\'' + w.symbol + '\')">' +
+      '<span>' + w.symbol + '</span>' +
+      '<span class="remove" onclick="event.stopPropagation();removeWatchlist(\'' + w.symbol + '\')">✕</span></div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════
+function renderQuickBtns() {
+  document.getElementById('quick-btns').innerHTML = QUICK_STOCKS.map(function(s) {
+    return '<span class="quick-btn" onclick="loadStock(\'' + s + '\')">' + s + '</span>';
+  }).join('');
+}
+</script>
+</body>
+</html>

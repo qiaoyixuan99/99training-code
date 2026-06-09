@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+venv/
+*.egg
+
+# Node
+node_modules/
+dist/
+
+# Electron
+desktop/release/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 环境
+.env
+.env.local
+
+# 数据文件 (本地行情数据，不提交)
+data/market/*.parquet
+data/financial/*.parquet
+data/*.db
+
+# 用户策略 (示例除外)
+strategies/my_strategies/
+
+# 日志
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python 缓存
+.mypy_cache/
+.pytest_cache/
