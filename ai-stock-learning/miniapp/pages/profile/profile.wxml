@@ -1,0 +1,92 @@
+<!-- 个人中心 -->
+<view class="page-container">
+
+  <!-- 头部 -->
+  <view class="profile-header">
+    <text class="app-logo">📈</text>
+    <text class="app-name">AI K线拐点分析</text>
+    <text class="app-ver">v1.0.0</text>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stats-row">
+    <view class="stat-card">
+      <text class="stat-num">{{watchCount}}</text>
+      <text class="stat-label">自选股</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-num">{{analysisCount}}</text>
+      <text class="stat-label">分析记录</text>
+    </view>
+  </view>
+
+  <!-- 功能列表 -->
+  <view class="menu-section">
+    <view class="menu-title">功能</view>
+
+    <view class="menu-item">
+      <text class="mi-icon">🔔</text>
+      <text class="mi-text">拐点提醒设置</text>
+      <text class="mi-arrow">›</text>
+    </view>
+
+    <view class="menu-item">
+      <text class="mi-icon">🤖</text>
+      <text class="mi-text">AI分析偏好</text>
+      <text class="mi-arrow">›</text>
+    </view>
+
+    <view class="menu-item" bindtap="onToggleHistory">
+      <text class="mi-icon">📜</text>
+      <text class="mi-text">分析历史</text>
+      <text class="mi-badge">{{analysisCount}}</text>
+      <text class="mi-arrow">{{showHistory ? '⌄' : '›'}}</text>
+    </view>
+  </view>
+
+  <!-- 分析历史展开 -->
+  <view class="history-list" wx:if="{{showHistory}}">
+    <view class="history-header">
+      <text>最近分析</text>
+      <text class="clear-btn" bindtap="onClearHistory">清空</text>
+    </view>
+    <view class="history-item" wx:for="{{analysisHistory}}" wx:key="time">
+      <text class="hi-stock">{{item.stockName}}</text>
+      <text class="hi-point">{{item.analysis}}</text>
+      <text class="hi-time">{{item.time}}</text>
+    </view>
+    <view class="history-empty" wx:if="{{analysisHistory.length === 0}}">
+      <text>暂无记录</text>
+    </view>
+  </view>
+
+  <!-- 设置 -->
+  <view class="menu-section">
+    <view class="menu-title">关于</view>
+
+    <view class="menu-item">
+      <text class="mi-icon">ℹ️</text>
+      <text class="mi-text">使用说明</text>
+      <text class="mi-arrow">›</text>
+    </view>
+
+    <view class="menu-item">
+      <text class="mi-icon">📧</text>
+      <text class="mi-text">意见反馈</text>
+      <text class="mi-arrow">›</text>
+    </view>
+
+    <view class="menu-item">
+      <text class="mi-icon">⭐</text>
+      <text class="mi-text">给个好评</text>
+      <text class="mi-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 免责 -->
+  <view class="disclaimer">
+    <text>⚠️ 本工具仅供学习参考，不构成投资建议</text>
+    <text>数据来源：东方财富 | AI引擎：Claude</text>
+  </view>
+
+</view>

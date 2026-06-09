@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Cache
+ai-engine/.cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Miniapp private config (contains personal appid settings)
+*.private.config.json

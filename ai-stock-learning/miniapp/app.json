@@ -1,0 +1,50 @@
+{
+  "pages": [
+    "pages/chart/chart",
+    "pages/analysis/analysis",
+    "pages/watchlist/watchlist",
+    "pages/profile/profile"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#0d1117",
+    "navigationBarTitleText": "AI K线分析",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0d1117"
+  },
+  "tabBar": {
+    "color": "#8b949e",
+    "selectedColor": "#58a6ff",
+    "backgroundColor": "#161b22",
+    "borderStyle": "black",
+    "list": [
+      {
+        "text": "行情",
+        "pagePath": "pages/chart/chart",
+        "iconPath": "images/icons/chart.png",
+        "selectedIconPath": "images/icons/chart-active.png"
+      },
+      {
+        "text": "分析",
+        "pagePath": "pages/analysis/analysis",
+        "iconPath": "images/icons/analysis.png",
+        "selectedIconPath": "images/icons/analysis-active.png"
+      },
+      {
+        "text": "自选",
+        "pagePath": "pages/watchlist/watchlist",
+        "iconPath": "images/icons/watchlist.png",
+        "selectedIconPath": "images/icons/watchlist-active.png"
+      },
+      {
+        "text": "我的",
+        "pagePath": "pages/profile/profile",
+        "iconPath": "images/icons/me.png",
+        "selectedIconPath": "images/icons/me-active.png"
+      }
+    ]
+  },
+  "usingComponents": {},
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

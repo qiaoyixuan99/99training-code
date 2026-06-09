@@ -1,0 +1,119 @@
+<!-- 行情页 - K线图 + 拐点分析 -->
+<view class="page-container">
+
+  <!-- 自定义导航栏 -->
+  <view class="nav-bar" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav-content" style="height: 44px;">
+      <view class="stock-selector" bindtap="onToggleSearch">
+        <text class="stock-name">{{stockName}}</text>
+        <text class="stock-code">{{stockCode}}</text>
+        <text class="arrow">▾</text>
+      </view>
+      <view class="stock-price-info">
+        <text class="price" style="color: {{isUp ? '#ef4444' : '#22c55e'}};">{{stockPrice}}</text>
+        <text class="change" style="color: {{isUp ? '#ef4444' : '#22c55e'}};">{{stockChange}} {{stockChangePct}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 周期选择器 -->
+  <view class="period-bar">
+    <view class="period-item {{activePeriod === item.key ? 'active' : ''}}"
+          wx:for="{{periods}}" wx:key="key"
+          data-period="{{item.key}}"
+          bindtap="onPeriodChange">
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- K线Canvas -->
+  <view class="chart-container">
+    <canvas type="2d" id="klineCanvas" class="kline-canvas"
+            wx:if="{{!showSearch}}"
+            style="width:100%;height:{{chartHeight + volumeHeight}}px;"
+            bindtouchmove="onChartTouch"
+            bindtouchend="onChartTouchEnd">
+    </canvas>
+
+    <!-- 加载状态 -->
+    <view class="chart-loading" wx:if="{{loading}}">
+      <view class="loading-spinner"></view>
+      <text>加载中...</text>
+    </view>
+
+    <!-- 错误状态 -->
+    <view class="chart-error" wx:if="{{error}}">
+      <text>⚠️ {{error}}</text>
+      <view class="retry-btn" bindtap="loadData">重试</view>
+    </view>
+
+    <!-- 拐点提示浮层 -->
+    <view class="point-toast" wx:if="{{showPointDetail && selectedPoint}}"
+          bindtap="onViewAnalysis">
+      <view class="point-toast-header">
+        <text class="point-type">{{selectedPoint.label}}</text>
+        <text class="point-strength">强度 {{selectedPoint.strength}}/10</text>
+      </view>
+      <view class="point-toast-body">
+        <text>📅 {{selectedPoint.time}}</text>
+        <text>💰 ¥{{selectedPoint.price}}</text>
+        <text class="point-trend">{{selectedPoint.trendBefore}} {{selectedPoint.trendDays}}天</text>
+      </view>
+      <view class="point-toast-action">
+        <text>🤖 查看AI详细分析 ›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 拐点列表 -->
+  <view class="point-list-section">
+    <view class="section-title">
+      <text>📍 拐点列表</text>
+      <text class="section-count">{{turningPointList.length}}个</text>
+    </view>
+    <scroll-view scroll-x class="point-scroll" wx:if="{{turningPointList.length > 0}}">
+      <view class="point-chip {{item.type}}"
+            wx:for="{{turningPointList}}" wx:key="index"
+            wx:if="{{item.strength >= 4}}"
+            data-idx="{{index}}"
+            bindtap="onViewAnalysis">
+        <text class="chip-label">{{item.label}}</text>
+        <text class="chip-price">¥{{item.price}}</text>
+        <text class="chip-date">{{item.time}}</text>
+      </view>
+    </scroll-view>
+    <view class="empty-points" wx:else>
+      <text class="text-muted">暂无显著拐点</text>
+    </view>
+  </view>
+
+  <!-- 搜索弹层 -->
+  <view class="search-overlay" wx:if="{{showSearch}}" catchtap="onToggleSearch">
+    <view class="search-panel" catchtap="noop">
+      <view class="search-header">
+        <text class="search-title">搜索股票</text>
+        <text class="search-close" bindtap="onToggleSearch">✕</text>
+      </view>
+      <input class="search-input" placeholder="输入代码或名称..."
+             value="{{searchKeyword}}"
+             focus="{{true}}"
+             bindinput="onSearchInput"
+             placeholder-style="color:#64748b;" />
+      <scroll-view scroll-y class="search-results">
+        <view class="search-item" wx:for="{{searchResults}}" wx:key="code"
+              data-code="{{item.code}}" data-name="{{item.name}}"
+              bindtap="onSelectStock">
+          <view class="sr-info">
+            <text class="sr-name">{{item.name}}</text>
+            <text class="sr-code">{{item.code}}</text>
+          </view>
+          <text class="sr-market">{{item.market === 'sh' ? '沪' : '深'}}</text>
+        </view>
+        <view class="search-empty" wx:if="{{searchKeyword && searchResults.length === 0}}">
+          <text>未找到相关股票</text>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+
+</view>

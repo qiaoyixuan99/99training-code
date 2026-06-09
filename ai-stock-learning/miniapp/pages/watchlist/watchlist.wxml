@@ -1,0 +1,53 @@
+<!-- 自选页 -->
+<view class="page-container">
+
+  <!-- 顶部操作 -->
+  <view class="top-bar">
+    <text class="page-title">⭐ 自选股</text>
+    <text class="edit-btn" bindtap="onToggleEdit">{{editing ? '完成' : '编辑'}}</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-bar" wx:if="{{loadingQuotes}}">
+    <view class="loading-dot"></view>
+    <text>更新行情中...</text>
+  </view>
+
+  <!-- 自选列表 -->
+  <view class="stock-list" wx:if="{{watchlist.length > 0}}">
+    <view class="stock-item" wx:for="{{watchlist}}" wx:key="code"
+          data-code="{{item.code}}" data-name="{{item.name}}"
+          bindtap="onSelectStock">
+      <!-- 删除按钮（编辑模式） -->
+      <view class="delete-btn" wx:if="{{editing}}"
+            data-code="{{item.code}}" catchtap="onDeleteStock">
+        <text>✕</text>
+      </view>
+
+      <view class="si-left">
+        <text class="si-name">{{item.name}}</text>
+        <text class="si-code">{{item.code}}</text>
+      </view>
+
+      <view class="si-right" wx:if="{{quotes[item.code]}}">
+        <text class="si-price" style="color: {{quotes[item.code].change >= 0 ? '#ef4444' : '#22c55e'}};">
+          ¥{{quotes[item.code].price}}
+        </text>
+        <text class="si-change" style="color: {{quotes[item.code].change >= 0 ? '#ef4444' : '#22c55e'}};">
+          {{quotes[item.code].changePct >= 0 ? '+' : ''}}{{quotes[item.code].changePct}}%
+        </text>
+      </view>
+      <view class="si-right" wx:else>
+        <text class="si-price muted">--</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">📋</text>
+    <text class="empty-text">暂无自选股</text>
+    <text class="empty-hint">在行情页搜索并添加股票</text>
+  </view>
+
+</view>

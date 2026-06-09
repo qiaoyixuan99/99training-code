@@ -1,0 +1,131 @@
+<!-- AI分析页 — 对接Python引擎 -->
+<view class="page-container">
+
+  <!-- 头部 -->
+  <view class="analysis-header">
+    <view class="header-stock">
+      <text class="hs-name">{{stockName}}</text>
+      <text class="hs-code">{{stockCode}}</text>
+    </view>
+    <view class="header-info">
+      <text class="hi-price">¥{{latestPrice}}</text>
+      <text class="hi-change {{latestChange >= 0 ? 'up' : 'down'}}">{{latestChange >= 0 ? '+' : ''}}{{latestChange}}%</text>
+    </view>
+  </view>
+
+  <!-- 引擎状态 + 周期选择 -->
+  <view class="toolbar">
+    <view class="engine-status {{engineOnline ? 'online' : 'offline'}}" bindtap="onCheckEngine">
+      <text class="es-dot"></text>
+      <text>{{engineOnline ? 'AI引擎在线' : 'AI引擎离线'}}</text>
+    </view>
+    <view class="period-bar">
+      <view
+        wx:for="{{['day','60min','30min','15min','week']}}"
+        wx:key="*this"
+        class="period-item {{period === item ? 'active' : ''}}"
+        data-period="{{item}}"
+        bindtap="onPeriodChange"
+      >
+        <text>{{item === 'day' ? '日K' : item === 'week' ? '周K' : item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-block" wx:if="{{analysisLoading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">AI 正在分析中...</text>
+  </view>
+
+  <!-- 分析结果 -->
+  <view class="analysis-content" wx:if="{{aiAnalysis && !analysisLoading}}">
+    <!-- 概览 -->
+    <view class="card summary-card">
+      <text class="card-title">{{aiAnalysis.title}}</text>
+      <text class="card-subtitle">{{aiAnalysis.summary}}</text>
+    </view>
+
+    <!-- 数据明细 -->
+    <view class="card" wx:if="{{aiAnalysis.details.length > 0}}">
+      <text class="card-title">📋 分析数据</text>
+      <view class="detail-grid">
+        <view class="detail-item" wx:for="{{aiAnalysis.details}}" wx:key="label">
+          <text class="detail-label">{{item.label}}</text>
+          <text class="detail-value">{{item.value}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 技术信号 -->
+    <view class="card" wx:if="{{aiAnalysis.signals.length > 0}}">
+      <text class="card-title">🔍 技术信号</text>
+      <view class="signal-list">
+        <view class="signal-item {{item.type}}" wx:for="{{aiAnalysis.signals}}" wx:key="text">
+          <text class="signal-icon">{{item.icon}}</text>
+          <text class="signal-text">{{item.text}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 策略结果 -->
+    <view class="card" wx:if="{{aiAnalysis.strategyResults.length > 0}}">
+      <text class="card-title">🧠 策略分析</text>
+      <view class="strategy-list">
+        <view class="strategy-item" wx:for="{{aiAnalysis.strategyResults}}" wx:key="name">
+          <view class="st-header">
+            <text class="st-name">{{item.name}}</text>
+            <text class="st-confidence">置信度 {{item.confidence * 100}}%</text>
+          </view>
+          <view class="st-signals" wx:if="{{item.signals.length > 0}}">
+            <view class="st-signal {{sig.type}}" wx:for="{{item.signals}}" wx:key="label" wx:for-item="sig">
+              <text class="sts-label">{{sig.label}}</text>
+              <text class="sts-value">{{sig.value}}</text>
+            </view>
+          </view>
+          <text class="st-reason" wx:if="{{item.reason && item.signals.length === 0}}">{{item.reason}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 预测结果 -->
+    <view class="card" wx:if="{{aiAnalysis.predictionResults.length > 0}}">
+      <text class="card-title">🔮 AI预测</text>
+      <view class="predict-list">
+        <view class="predict-item" wx:for="{{aiAnalysis.predictionResults}}" wx:key="name">
+          <text class="pi-name">{{item.name}}</text>
+          <text class="pi-direction">{{item.direction}}</text>
+          <text class="pi-target" wx:if="{{item.target}}">目标价 ¥{{item.target}}</text>
+          <text class="pi-horizon">周期 {{item.horizon}}根K线</text>
+          <text class="pi-confidence">置信度 {{item.confidence * 100}}%</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- AI解读 -->
+    <view class="card">
+      <text class="card-title">🤖 AI 综合解读</text>
+      <text class="analysis-text">{{aiAnalysis.conclusion}}</text>
+    </view>
+
+    <!-- 免责声明 -->
+    <view class="disclaimer">
+      <text>{{aiAnalysis.disclaimer}}</text>
+    </view>
+
+    <!-- 操作 -->
+    <view class="action-bar">
+      <view class="action-btn" bindtap="onReanalyze">
+        <text>🔄 重新分析</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!aiAnalysis && !analysisLoading}}">
+    <text class="empty-icon">📊</text>
+    <text class="empty-text">请在行情页选择股票后切换到此页</text>
+    <text class="empty-hint">或运行 python server.py 启动AI引擎</text>
+  </view>
+
+</view>

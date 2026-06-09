@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "K线分析",
+  "navigationStyle": "custom",
+  "disableScroll": true,
+  "usingComponents": {}
+}
